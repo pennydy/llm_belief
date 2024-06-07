@@ -2,6 +2,9 @@ library(lme4)
 library(dplyr)
 library(emmeans)
 library(tidyverse)
+library(ggplot2)
+library(tidytext)
+library(RColorBrewer)
 
 
 theme_set(theme_bw())
@@ -10,33 +13,129 @@ cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00",
 
 
 ###### Data ######
-# get the data
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 source("helpers.R")
-gpt4o.data <- read.csv("../../output_generate_system_gpt-4o.csv", header=TRUE) %>% 
+
+# prior data
+prior.gpt4o.data <- read.csv("../../data/prior/prior_generate_system_gpt-4o.csv", header=TRUE) %>% 
   na.omit()
-gpt4.data <- read.csv("../../output_generate_system_gpt-4.csv", header=TRUE)
-gpt35.data <- read.csv("../../output_generate_system_gpt-3.5-turbo.csv", header=TRUE)
-human.data <- read.csv("../../data/2_listenerSpeakerAH-trials.csv", header=TRUE)
+prior.gpt4.data <- read.csv("../../data/prior/prior_generate_system_gpt-4.csv", header=TRUE)
+prior.gpt35.data <- read.csv("../../data/prior/prior_generate_system_gpt-3.5-turbo.csv", header=TRUE)
+prior.human.data <- read.csv("../../data/prior/prior_means_human.csv", header=TRUE) %>% 
+  rename(embedded_content = eventItem,
+         rating = Mean) %>% 
+  mutate(item = gsub("([A-Za-z]+).*", "\\1", embedded_content),
+         embedded = "p")
 
+prior.all.data <- bind_rows(lst(prior.gpt4.data, prior.gpt4o.data, prior.gpt35.data, prior.human.data), .id="model")
+prior.all.model.data <- bind_rows(lst(prior.gpt4.data, prior.gpt4o.data, prior.gpt35.data), .id="model")
 
-embedded_p <- bind_rows(lst(gpt4.data, gpt4o.data,gpt35.data), .id="model")
-
-embedded_p <- embedded_p %>% 
+prior_p <- prior.all.data %>% 
   filter(embedded == "p") %>%
-  mutate(model = case_when(model == "gpt4.data" ~ "gpt-4",
-                           model == "gpt4o.data" ~ "gpt-4o",
-                           model == "gpt35.data" ~ "gpt-3.5-turbo")) %>% 
-  select(model,prior_type, item, embedded_content, prior, rating, distribution) 
-  mutate(item = fct_relevel(item, c("Mary","Charley","Grace","Jackson","Jon","Tony","Owen",
-                                    "Zoe","Josie","Danny","Jayden","Emma","Frank","Olivia",
-                                    "Sophia","Julian","Mia","Emily","Josh","Isabella")))
+  mutate(model = case_when(model == "prior.gpt4.data" ~ "gpt-4",
+                           model == "prior.gpt4o.data" ~ "gpt-4o",
+                           model == "prior.gpt35.data" ~ "gpt-3.5-turbo",
+                           model == "prior.human.data" ~ "human")) %>% 
+  select(model,prior_type, item, embedded_content, prior, rating, distribution) %>% 
+  mutate(embedded_content = fct_relevel(embedded_content, c("Isabella ate a steak on Sunday",
+                                                            "Josh learned to ride a bike yesterday",
+                                                            "Emily bought a car yesterday",
+                                                            "Mia drank 2 cocktails last night",
+                                                            "Julian dances salsa",
+                                                            "Sophia got a tattoo",
+                                                            "Olivia sleeps until noon",
+                                                            "Frank got a cat",
+                                                            "Emma studied on Saturday morning",
+                                                            "Jayden rented a car",
+                                                            "Danny ate the last cupcake",
+                                                            "Josie went on vacation to France",
+                                                            "Zoe calculated the tip",
+                                                            "Owen shoveled snow last winter",
+                                                            "Tony had a drink last night",
+                                                            "Jon walks to work",
+                                                            "Jackson ran 10 miles",
+                                                            "Grace visited her sister",
+                                                            "Charley speaks Spanish",
+                                                            "Mary is pregnant")))
 
-embedded_p_graph <- ggplot(data = embedded_p,
-                        mapping = aes(y = embedded_content,
+
+### projection data
+projection.gpt4o.data <- read.csv("../../data/projection/projection_generate_system_gpt-4o.csv", header=TRUE) %>% 
+  na.omit()
+projection.gpt4.data <- read.csv("../../data/projection/projection_generate_system_gpt-4.csv", header=TRUE)
+projection.gpt35.data <- read.csv("../../data/projection/projection_generate_system_gpt-3.5-turbo.csv", header=TRUE)
+
+projection.all.model.data <- bind_rows(lst(projection.gpt4.data, projection.gpt4o.data, projection.gpt35.data), .id="model")
+
+projection_p <- projection.all.model.data %>% 
+  filter(embedded_type == "p") %>%
+  mutate(model = case_when(model == "projection.gpt4.data" ~ "gpt-4",
+                           model == "projection.gpt4o.data" ~ "gpt-4o",
+                           model == "projection.gpt35.data" ~ "gpt-3.5-turbo")) %>% 
+  select(model,verb,prior_type, item, prior, rating)
+
+projection_not_p <- projection.all.model.data %>% 
+  filter(embedded_type == "not_p") %>%
+  mutate(model = case_when(model == "projection.gpt4.data" ~ "gpt-4",
+                           model == "projection.gpt4o.data" ~ "gpt-4o",
+                           model == "projection.gpt35.data" ~ "gpt-3.5-turbo")) %>% 
+  select(model,verb,prior_type, item, prior, rating)
+
+#### projection: embedded p, both facts
+projection_p_mean <- projection_p %>% 
+  group_by(verb, model, prior_type) |>
+  summarize(mean_rating = mean(rating),
+            ci_low = ci.low(rating), # confidence interval
+            ci_high = ci.high(rating)) |> 
+  ungroup() |>
+  mutate(YMin = mean_rating - ci_low,
+         YMax = mean_rating + ci_high,
+         verb = fct_reorder(verb, .x=mean_rating))
+         # verb = reorder_within(verb, mean_rating, model))
+
+#### projection: embedded not p, both facts
+projection_not_p_mean <- projection_not_p %>% 
+  group_by(verb, model, prior_type) |>
+  summarize(mean_rating = mean(rating),
+            ci_low = ci.low(rating), # confidence interval
+            ci_high = ci.high(rating)) |> 
+  ungroup() |>
+  mutate(YMin = mean_rating - ci_low,
+         YMax = mean_rating + ci_high,
+         verb = fct_reorder(verb, .x=mean_rating))
+
+#### projection: embedded p and not p together
+projection_all_mean <- bind_rows(lst(projection_p_mean,projection_not_p_mean), .id="embedded_type") %>% 
+  mutate(embedded_type = ifelse(embedded_type == "projection_p_mean", "p", "not p")) %>% 
+  mutate(embedded_type = fct_relevel(embedded_type, c("p", "not p")))
+
+
+
+#### prior and projection
+prior_projection_gpt35 <- rbind(prior.gpt35.data, projection.gpt35.data)
+
+###### Plot ######
+# prior
+human_prior_p <- subset(prior_p, model == "human")
+model_prior_p <- subset(prior_p, model != "human")
+model_prior_p$facet <- model_prior_p$model
+human_prior_p <- merge(human_prior_p,
+                       data.frame(model = "human", 
+                                  facet = unique(model_prior_p$facet)))
+prior_p_plot <- rbind(human_prior_p, model_prior_p) %>% 
+  mutate(is_model = ifelse(model=="human", "human", "model"))
+
+prior_embedded_p_graph <- ggplot(data = prior_p_plot,
+                           mapping = aes(y = embedded_content,
                                       x = rating,
-                                      shape = model,
+                                      shape = is_model,
                                       color = prior_type)) +
+  # geom_point(data=prior_p %>% 
+  #              filter(model=="human"),
+  #            mapping=aes(y=embedded_content,
+  #                      x=rating,
+  #                      color=prior_type),
+  #            shape=17,size=4) +
   geom_point(size=4,alpha=0.6,position = position_jitter(w=0, h=0.17)) +
   geom_vline(xintercept = 0.5,
              alpha = 0.7,
@@ -44,64 +143,164 @@ embedded_p_graph <- ggplot(data = embedded_p,
              linetype = "dashed") + 
   labs(x = "Likelihood of p",
        y = "Embedded content",
-       color = "prior") +
+       color = "prior",
+       shape = "human or model") +
+  # guides(shape="none") +
+  facet_grid(. ~ facet) +
   scale_color_manual(values=cbPalette,
                     labels=c("high prior", "low prior"))
-embedded_p_graph
+prior_embedded_p_graph
+ggsave(prior_embedded_p_graph, file="../graphs/prior_models_facet.pdf", width=7, height=4)
 
-####### scripts from human participants analysis
+# projection: p
+##TODO: rank the belief rating (similar to the og pattern)
+##TODO: add human data -> which file
+projection_embedded_p_graph <- ggplot(data = projection_p_mean,
+                                 mapping = aes(x = verb,
+                                               y = mean_rating,
+                                               color = prior_type)) +
+  geom_errorbar(aes(ymin=YMin,
+                    ymax=YMax),
+                position=position_dodge(.9),
+                width=.2,
+                color="black") +
+  geom_point(size=4,alpha=0.6) +
+  geom_vline(xintercept = 0.5,
+             alpha = 0.7,
+             color = "grey",
+             linetype = "dashed") + 
+  labs(x = "verb",
+       y = "Mean belief rating in p",
+       color = "prior") +
+  # guides(shape="none") +
+  facet_grid(model~.) +
+  theme(axis.text.x = element_text(angle = 80, vjust = 0.5, hjust=0.4)) +
+  scale_x_reordered() +
+  scale_color_manual(values=cbPalette,
+                     labels=c("high prior", "low prior")) 
+projection_embedded_p_graph
+ggsave(projection_embedded_p_graph, file="../graphs/projection_models_p-facet.pdf", width=6, height=8)
 
 
-# exclude bot check and select only the relevant columns
-df.data.clean <- df.data |>
-  filter(slide_number_in_experiment != 1) |>
-  select(workerid, belief_response, certainty_response, content, prior, trigger, trigger_class)
+## projection: not p
+projection_embedded_not_p_graph <- ggplot(data = projection_not_p_mean,
+                                      mapping = aes(x = verb,
+                                                    y = mean_rating,
+                                                    color = prior_type)) +
+  geom_errorbar(aes(ymin=YMin,
+                    ymax=YMax),
+                position=position_dodge(.9),
+                width=.2,
+                color="black") +
+  geom_point(size=4,alpha=0.6) +
+  geom_vline(xintercept = 0.5,
+             alpha = 0.7,
+             color = "grey",
+             linetype = "dashed") + 
+  labs(x = "verb",
+       y = "Mean belief rating in not p",
+       color = "prior") +
+  # guides(shape="none") +
+  facet_grid(model~.,scales="free") +
+  # scale_x_reordered() +
+  scale_color_manual(values=cbPalette,
+                     labels=c("high prior", "low prior"))+
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=0.5))
+projection_embedded_not_p_graph
+ggsave(projection_embedded_not_p_graph, file="../graphs/projection_models_not_p-facet.pdf", width=7, height=4)
 
-# calculate the ratings for the alternative content and specify the belief
-# of the certainty rating
-df.data.all <- df.data.clean |>
-  mutate(utterance_type = gsub("[a-z]+_", "\\1", trigger)) |> # either p (pos) or not p (neg) 
-  mutate(predicate = gsub("(.*)_[a-z]+", "\\1", trigger)) |>
-  mutate(not_p = ifelse(utterance_type == "neg", 
-                        belief_response,
-                        1 - belief_response),
-         p = ifelse(utterance_type == "neg",
-                    1 - belief_response,
-                    belief_response)) |>
-  mutate(certainty_content = case_when(
-    belief_response > 0.5 & utterance_type == "neg" ~ "not_p",
-    belief_response > 0.5 & utterance_type != "neg" ~ "p",
-    belief_response <= 0.5 & utterance_type == "neg" ~ "p",
-    belief_response <= 0.5 & utterance_type != "neg" ~ "not_p")) 
 
-df.data.all <- df.data.all %>% 
-  pivot_longer(cols = c(p, not_p),
-               names_to = "belief_content",
-               values_to = "belief_rating") |>
-  # to reorder the predicate and utterance_type for graph
-  mutate(predicate = fct_relevel(predicate, "MC","simple","think","know","say","confirm"),
-         utterance_type = fct_relevel(utterance_type, "MC","polar","pos", "neg"))
+# projection: p and not p (side-by-side)
+projection_all_graph <- ggplot(data = projection_all_mean,
+                                      mapping = aes(x = verb,
+                                                    y = mean_rating,
+                                                    color = prior_type)) +
+  geom_errorbar(aes(ymin=YMin,
+                    ymax=YMax),
+                position=position_dodge(.9),
+                width=.2,
+                color="black") +
+  geom_point(size=4,alpha=0.6) +
+  geom_vline(xintercept = 0.5,
+             alpha = 0.7,
+             color = "grey",
+             linetype = "dashed") + 
+  labs(x = "verb",
+       y = "Mean belief rating in embedded content",
+       color = "Prior belief for p") +
+  facet_grid(model~embedded_type) +
+  theme(axis.text.x = element_text(angle = 80, vjust = 0.5, hjust=0.5)) +
+  # facet_grid(model~.,scales="free") +
+  # coord_flip() +
+  scale_x_reordered() +
+  scale_color_manual(values=cbPalette,
+                     labels=c("high prior", "low prior")) +
+  theme(axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10))
+projection_all_graph
+ggsave(projection_all_graph, file="../graphs/projection_all-facet.pdf", width=8, height=6)
 
-## Data exclusion
-group_mc_mean <- mean(df.data.all$belief_response[df.data.all$trigger == "MC"])
-group_mc_sd <- sd(df.data.all$belief_response[df.data.all$trigger == "MC"])
-exclusion_criteria <- group_mc_mean + 2*group_mc_sd
-excludeid <- df.data.all |>
-  filter(trigger == "MC") |>
-  group_by(workerid) |>
-  summarise(mean_belief_response = mean(belief_response)) |>
-  mutate(exclude = ifelse(mean_belief_response >= exclusion_criteria, "yes", "no")) |>
-  filter(exclude == "yes") |>
-  select(workerid)
-# workerid 59 did not respond to the native language question
-excludeid <- excludeid$workerid
-excludeid <- c(59)
-df.data.summary <- df.data.all |>
-  filter(!workerid %in% excludeid)
+## prior ~ belief rating, line plot
+prior_projection_p <- projection_p %>% 
+  left_join(model_prior_p, by = c("model", "prior_type", "item")) %>% 
+  rename(projection_rating = rating.x) %>% 
+  rename(prior_rating = rating.y) %>% 
+  select(model, verb, prior_type, item, projection_rating, prior_rating)
 
-length(unique(df.data.summary$workerid))
 
-table(df.data.summary$content, df.data.summary$predicate)
+prior_projection_graph <- ggplot(data = prior_projection_p,
+       aes(x=prior_rating,
+           y=projection_rating)) +
+  geom_point(alpha=0.4) +
+  geom_smooth(method = "lm", fullrange=T) +
+  # geom_point(data=combine_summary |> 
+  #              filter(predicate %in% c("know","think","say","inform")), 
+  #            aes(x=combined_prior,
+  #                y=mean_ah_rating,
+  #                fill=predicate),
+  #            shape=21,size=2,color="black",stroke=1) +
+  # geom_errorbar(data=combine_summary |> 
+  #                 filter(predicate %in% c("know","think","say","inform")),
+  #               aes(x=combined_prior,ymin=ah_YMin, ymax=ah_YMax),
+  #               width=0.05,
+  #               color="black") +
+  facet_grid(. ~ model) +
+  scale_x_continuous(name="Rating of prior belief in the embedded content", 
+                     limits=c(0,1),
+                     breaks=c(0,0.2,0.4,0.6,0.8,1)) + 
+  scale_y_continuous(name="Mean attitude holder belief\nin the embedded content", limits=c(0,1)) + 
+  theme(axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10))
+prior_projection_graph
+
+prior_projection_verb_graph <- ggplot(data = prior_projection_p %>% 
+                                        filter(verb != "polar"),
+                                 aes(x=prior_rating,
+                                     y=projection_rating,
+                                     color=model)) +
+  geom_point(alpha=0.4) +
+  geom_smooth(method = "lm", fullrange=T) +
+  # geom_point(data=combine_summary |> 
+  #              filter(predicate %in% c("know","think","say","inform")), 
+  #            aes(x=combined_prior,
+  #                y=mean_ah_rating,
+  #                fill=predicate),
+  #            shape=21,size=2,color="black",stroke=1) +
+  # geom_errorbar(data=combine_summary |> 
+  #                 filter(predicate %in% c("know","think","say","inform")),
+  #               aes(x=combined_prior,ymin=ah_YMin, ymax=ah_YMax),
+  #               width=0.05,
+  #               color="black") +
+  facet_wrap( ~ verb) +
+  scale_x_continuous(name="Rating of prior belief in p", 
+                     limits=c(0,1),
+                     breaks=c(0,0.2,0.4,0.6,0.8,1)) + 
+  scale_y_continuous(name="Mean attitude holder belief in p", limits=c(0,1)) + 
+  theme(axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10)) +
+  scale_colour_brewer(palette = "Set2")
+prior_projection_verb_graph
+ggsave(prior_projection_verb_graph, file="../graphs/projection_prior-verb.pdf", width=10, height=8)
 
 
 ###### Graph ######
@@ -132,428 +331,3 @@ content_label <- list("not_p"="Belief content: not p",
 content_labeller <- function(variable,value){
   return(content_label[value])
 }
-
-## BELIEF RATINGS
-# summary of belief ratings
-belief_summary <- df.data.summary |>
-  group_by(predicate, belief_content, utterance_type) |>
-  summarize(mean_belief_rating = mean(belief_rating),
-            ci_low = ci.low(belief_rating), # confidence interval
-            ci_high = ci.high(belief_rating)) |> 
-  ungroup() |>
-  mutate(YMin = mean_belief_rating - ci_low,
-         YMax = mean_belief_rating + ci_high)
-belief_summary
-write.csv(belief_summary, "../results/belief_summary.csv" , row.names = FALSE)
-
-
-# by the type of embedded clause (pos, neg, or simple polar)
-belief_by_p <- ggplot(data = belief_summary |>
-                        filter(belief_content == "p"),
-                      mapping = aes(x = predicate,
-                                    y = mean_belief_rating,
-                                    fill = predicate)) +
-  geom_bar(stat="identity",
-           position=dodge) +
-  geom_errorbar(aes(ymin=YMin,
-                    ymax=YMax),
-                position=dodge,
-                width=.2) +
-  geom_hline(yintercept = 0.5,
-             alpha = 0.7,
-             color = "grey",
-             linetype = "dashed") + 
-  facet_grid(. ~ utterance_type,
-             labeller = utterance_labeller, scales="free_x") +
-  labs(x = "Predicate",
-       y = "Mean belief in p",
-       fill = "Predicate") +
-  scale_fill_manual(values=cbPalette,
-                    labels=c("Filler", "Polar", "think", "know", "say", "confirm", "inform")) +
-  theme(axis.text.x=element_blank(),
-        axis.title.x=element_blank())
-belief_by_p
-ggsave(belief_by_p, file="../graphs/belief_by_p.pdf", width=6, height=3)
-
-# by predicate
-belief_by_predicate <- ggplot(data = belief_summary |>
-                        filter(belief_content == "p") |>
-                        mutate(utterance_type = ifelse(as.character(utterance_type) %in% c("MC","polar"), "pos", as.character(utterance_type))),
-                      mapping = aes(x = belief_content,
-                                    y = mean_belief_rating,
-                                    alpha = utterance_type,
-                                    fill = predicate)) +
-  geom_bar(stat="identity",
-           position=dodge,
-           color="black") +
-  geom_errorbar(aes(ymin=YMin,
-                    ymax=YMax),
-                position=dodge,
-                width=.2,
-                color="black") +
-  geom_hline(yintercept = 0.5,
-             alpha = 0.7,
-             color = "grey",
-             linetype = "dashed") + 
-  facet_grid(. ~ predicate,
-             labeller = predicate_labeller) +
-  labs(y = "Mean belief in p") +
-  scale_alpha_discrete(range=c(.3,.9), # include both p and not p (more opaque). 
-                       labels=c("not p", "p"),
-                       name="Embedded\ncontent") +
-  scale_fill_manual(values=cbPalette,
-                    labels=c("Filler", "Polar", "think", "know", "say", "confirm", "inform"),
-                    guide="none") +
-  theme(axis.text.x=element_blank(),
-        axis.title.x=element_blank()) 
-belief_by_predicate
-ggsave(belief_by_predicate, file="../graphs/belief_by_predicate.pdf", width=5, height=3)
-
-# by content and prior
-belief_prior_summary <- df.data.summary |>
-  group_by(predicate, belief_content, utterance_type, content, prior) |>
-  summarize(mean_belief_rating = mean(belief_rating),
-            count = n())|> 
-  ungroup()
-
-count_content <- df.data.summary |>
-  filter(utterance_type != "MC") |>
-  mutate(utterance_type = ifelse(as.character(utterance_type) == "polar", "pos", as.character(utterance_type))) |>
-  group_by(utterance_type, content, prior) |>
-  summarize(count = n()) |>
-  mutate(weighted_prior = prior*count) |>
-  group_by(utterance_type) |>
-  mutate(weighted_prior_all = sum(weighted_prior) / sum(count),
-         unweighted_prior_all = sum(prior) / 12)
-
-write.csv(belief_prior_summary, "../results/belief_prior_summary.csv" , row.names = FALSE)
-
-
-belief_prior_by_predicate <- ggplot(data = belief_prior_summary |>
-                                     filter(belief_content == "p",
-                                            predicate != "MC") |>
-                                     mutate(utterance_type = ifelse(as.character(utterance_type) %in% c("MC","polar"), "pos", as.character(utterance_type))),
-                                   mapping = aes(x = prior,
-                                                 y = mean_belief_rating,
-                                                 color = predicate)) +
-  geom_point(aes(size=count)) +
-  geom_smooth(method="lm") +
-  facet_grid(. ~ predicate,
-             labeller = predicate_labeller) +
-  scale_color_manual(values=cbPalette[2:7],
-                    labels=c("Polar", "think", "know", "say", "confirm", "inform"),guide="none") +
-  scale_size(range = c(0.5, 2),
-             name = "Number of\nratings") +
-  scale_y_continuous(limits = c(0,1)) + 
-  scale_x_continuous(guide = guide_axis(angle = 45)) +
-  labs(x = "Prior belief in p",
-       y = "Mean belief in p")
-belief_prior_by_predicate
-ggsave(belief_prior_by_predicate, file="../graphs/belief_prior_by_predicate.pdf", width=6, height=3)
-
-## CERTAINTY RATING
-# certainty ratings (added by judith)
-certainty_summary <- df.data.summary |>
-  # penny, in the following line we're grouping by certainty_content -- this only makes sense if we first exclude all rows where the belief value was inferred instead of given, so we only retain the rows where participants actually gave a certainty rating for the content of that row. eg, if utterance was "pos", belief response > .5, we want to keep the row where certainty_content is "p", but not where it's "not p". similarly, if utterance was "neg", belief response < .5,  we only want to keep the row where certainty_content is "not p", etc.
-  # that makes sense. The certainty_content column only keeps track of the content to which the participant gave a certainty rating. So for a given trail, the two belief_contents (one given, one inferred) map a to the same certainty_content. To get the belief rating for that content, we can just include rows that have the same certainty_content and belief_content value.
-  filter(certainty_content == belief_content) |>
-  group_by(predicate, certainty_content, utterance_type) |>
-  summarize(mean_certainty_rating = mean(certainty_response),
-            ci_low=ci.low(certainty_response),
-            ci_high=ci.high(certainty_response),
-            count = n()) |>
-  ungroup() |>
-  mutate(YMin = mean_certainty_rating - ci_low,
-         YMax = mean_certainty_rating + ci_high) |>
-  relocate(count, .after = utterance_type)
-certainty_summary
-write.csv(certainty_summary, "../results/certainty_summary_1.csv" , row.names = FALSE)
-
-marginalized_certainty <- df.data.summary |>
-  filter(certainty_content == belief_content,
-         predicate != "MC") |>
-  group_by(predicate, utterance_type) |>
-  summarize(mean_certainty_rating = mean(certainty_response),
-            ci_low=ci.low(certainty_response),
-            ci_high=ci.high(certainty_response)) |>
-  ungroup() |>
-  mutate(YMin = mean_certainty_rating - ci_low,
-         YMax = mean_certainty_rating + ci_high)
-marginalized_certainty
-write.csv(marginalized_certainty, "../results/marginal_certainty_summary.csv" , row.names = FALSE)
-
-# by the type of embedded clause (pos, neg, or simple polar)
-certainty_by_p <- ggplot(data = certainty_summary,
-                      mapping = aes(x = certainty_content,
-                                    y = mean_certainty_rating,
-                                    fill = predicate)) +
-  geom_bar(stat="identity", 
-           position=dodge) +
-  geom_errorbar(aes(ymin=YMin,
-                    ymax=YMax),
-                position=dodge,
-                width=.2) +
-  geom_hline(yintercept = 0.5,
-             alpha = 0.7,
-             color = "grey",
-             linetype = "dashed") + 
-  facet_grid(. ~ utterance_type,
-             labeller = utterance_labeller, scales="free_x") +
-  labs(x = "Rated content",
-       y = "Mean certainty of the rated content",
-       fill = "Predicate") +
-  # scale_alpha_discrete(range=c(.3,.9),name="Embedded\ncontent") +
-  scale_fill_manual(values=cbPalette,
-                    labels=c("Filler", "Polar", "think", "know", "say", "confirm", "inform")) # add guide="none" later
-certainty_by_p
-ggsave(certainty_by_p, file="../graphs/certainty_by_p.pdf", width=6, height=3)
-
-
-# by predicate
-certainty_by_predicate <- ggplot(data = certainty_summary |>
-                                   # filter(!utterance_type %in% c("MC")) |>
-                                   mutate(utterance_type = ifelse(as.character(utterance_type) %in% c("MC","polar"), "pos", as.character(utterance_type))),
-                                 mapping = aes(x = certainty_content,
-                                               y = mean_certainty_rating,
-                                               alpha = utterance_type,
-                                               color = predicate)) +
-  geom_point(aes(size=count),
-             stat="identity",
-             position=dodge,
-             show.legend = FALSE) +
-  geom_errorbar(aes(ymin=YMin,
-                    ymax=YMax),
-                position=dodge,
-                width=.2,
-                color="black") +
-  geom_hline(yintercept = 0.5,
-             alpha = 0.7,
-             color = "grey",
-             linetype = "dashed") +
-  facet_grid(. ~ predicate,
-             labeller = predicate_labeller) +
-  scale_alpha_discrete(range=c(.3,.8), # include both p and not p (more opaque). 
-                       labels=c("not p", "p"),
-                       name="Embedded\ncontent") +
-  scale_color_manual(values=cbPalette,
-                    labels=c("Filler", "Polar", "think", "know", "say", "confirm", "inform"),
-                    guide="none") +
-  labs(x = "Rated content",
-       y = "Mean certainty of the rated content") +
-  scale_y_continuous(limits = c(0,1))
-  # +scale_x_discrete(guide = guide_axis(angle = 45)) 
-certainty_by_predicate
-ggsave(certainty_by_predicate, file="../graphs/certainty_by_predicate.pdf", width=6, height=3)
-
-## BELIEF AND CERTAINTY
-overall_certainty_belief_summary <- df.data.summary |>
-  filter(certainty_content == belief_content) |>
-  group_by(predicate) |>
-  summarize(mean_certainty_rating = mean(certainty_response),
-            mean_belief_rating = mean(belief_rating),
-            certainty_ci_low = ci.low(certainty_response),
-            certainty_ci_high = ci.high(certainty_response),
-            belief_ci_low = ci.low(belief_rating),
-            belief_ci_high = ci.high(belief_rating),
-            count = n()) |>
-  ungroup() |>
-  mutate(certainty_YMin = mean_certainty_rating - certainty_ci_low,
-         certainty_YMax = mean_certainty_rating + certainty_ci_high,
-         belief_YMin = mean_belief_rating - belief_ci_low,
-         belief_YMax = mean_belief_rating + belief_ci_high)
-
-overall_certainty_belief_summary
-write.csv(overall_certainty_belief_summary, "../results/overall_certainty_belief_summary.csv" , row.names = FALSE)
-
-overall_belief_certainty <- ggplot(data = overall_certainty_belief_summary,
-                                   mapping = aes(x = mean_belief_rating,
-                                                 y = mean_certainty_rating,
-                                                 color = predicate)) +
-  geom_point(size=4) +
-  geom_errorbar(aes(ymin = certainty_YMin,ymax = certainty_YMax)) + 
-  geom_errorbarh(aes(xmin = belief_YMin,xmax = belief_YMax)) +
-  scale_color_manual(values=cbPalette,
-                     labels=c("Filler", "Polar", "think", "know", "say", "confirm", "inform")) + 
-  labs(x = "Mean belief of the rated content",
-       y = "Mean certainty of the rated content") 
-overall_belief_certainty
-ggsave(overall_belief_certainty, file="../graphs/overall_belief_certainty.pdf")
-
-certainty_belief_summary <- df.data.summary |>
-  filter(certainty_content == belief_content)
-
-certainty_belief_all <- ggplot(data = certainty_belief_summary,
-                                      mapping = aes(x = belief_rating,
-                                                    y = certainty_response,
-                                                    color = predicate)) +
-  geom_point(alpha=0.4) +
-  geom_smooth(fullrange=TRUE,
-              method = "lm") +
-  facet_grid(. ~ predicate,
-             labeller = predicate_labeller) +
-  scale_color_manual(values=cbPalette,
-                     labels=c("Filler", "Polar", "think", "know", "say", "confirm", "inform"), 
-                     guide="none") + 
-  labs(x = "Mean belief of the rated content",
-       y = "Mean certainty of the rated content") +
-  scale_x_continuous(limits = c(0.5,1),
-                     guide = guide_axis(angle = 90)) +
-  scale_y_continuous(limits = c(0,1))
-certainty_belief_all
-ggsave(certainty_belief_all, file="../graphs/certainty_belief_all.pdf",width=6, height=3)
-
-certainty_belief_by_content_summary <- certainty_belief_summary |>
-  group_by(content, predicate) |>
-  summarise(mean_content_belief = mean(belief_rating),
-            mean_content_certainty = mean(certainty_response)) |>
-  ungroup()
-
-certainty_belief_by_content <- ggplot(data = certainty_belief_by_content_summary,
-       mapping = aes(x = mean_content_belief,
-                     y = mean_content_certainty,
-                     color = predicate)) +
-  geom_point() +
-  geom_smooth(fullrange=TRUE,
-              method = "lm") +
-  facet_grid(. ~ predicate,
-             labeller = predicate_labeller) +
-  scale_color_manual(values=cbPalette,
-                     labels=c("Filler", "Polar", "think", "know", "say", "confirm", "inform"),
-                     guide="none") +
-  labs(x = "Mean belief of the content",
-       y = "Mean certainty of the rated content") +
-  scale_x_continuous(guide = guide_axis(angle = 90))  +
-  scale_y_continuous(limits = c(0,1))
-certainty_belief_by_content
-ggsave(certainty_belief_by_content, file="../graphs/certainty_belief_by_content.pdf",width=6, height=3)
-
-
-
-# certainty rating when the belief content is the same as the embedded content
-certainty_summary_alt <- df.data.summary |>
-  filter((certainty_content == "not_p" & utterance_type == "neg") |
-           (certainty_content == "p" & utterance_type != "neg")) |>
-  filter((belief_content == "not_p" & utterance_type == "neg") |
-           (belief_content == "p" & utterance_type != "neg")) |>
-  group_by(predicate, certainty_content, utterance_type) |>
-  summarize(mean_certainty_rating = mean(certainty_response),
-            ci_low=ci.low(certainty_response),
-            ci_high=ci.high(certainty_response),
-            count = n()) |>
-  ungroup() |>
-  mutate(YMin = mean_certainty_rating - ci_low,
-         YMax = mean_certainty_rating + ci_high) |>
-  relocate(count, .after = utterance_type)
-certainty_summary_alt
-
-certainty_combine_summary_alt <- df.data.summary |>
-  filter((certainty_content == "not_p" & utterance_type == "neg") |
-           (certainty_content == "p" & utterance_type != "neg")) |>
-  filter((belief_content == "not_p" & utterance_type == "neg") |
-           (belief_content == "p" & utterance_type != "neg")) |>
-  group_by(predicate) |>
-  summarize(mean_certainty_rating = mean(certainty_response),
-            ci_low=ci.low(certainty_response),
-            ci_high=ci.high(certainty_response),
-            count = n()) |>
-  ungroup() |>
-  mutate(YMin = mean_certainty_rating - ci_low,
-         YMax = mean_certainty_rating + ci_high) |>
-  mutate(certainty_content = "same")
-certainty_combine_summary_alt
-
-
-certainty_combine_alt_by_predicate <- ggplot(data = certainty_combine_summary_alt,
-                                 mapping = aes(x = certainty_content,
-                                               y = mean_certainty_rating,
-                                               color = predicate)) +
-  geom_point(aes(size=count),
-             stat="identity",
-             position=dodge,
-             show.legend = FALSE) +
-  geom_errorbar(aes(ymin=YMin,
-                    ymax=YMax),
-                position="dodge2",
-                width=.2,
-                color="black") +
-  geom_hline(yintercept = 0.5,
-             alpha = 0.7,
-             color = "grey",
-             linetype = "dashed") +
-  facet_grid(. ~ predicate,
-             labeller = predicate_labeller) +
-  scale_color_manual(values=cbPalette,
-                     labels=c("Filler", "Polar", "think", "know", "say", "confirm", "inform"),
-                     guide="none") +
-  labs(y = "Mean certainty of\nthe embedded content") +
-  theme(axis.text.x=element_blank(),
-        axis.title.x=element_blank()) +
-  scale_y_continuous(limits = c(0,1))
-# +scale_x_discrete(guide = guide_axis(angle = 45)) 
-certainty_combine_alt_by_predicate
-ggsave(certainty_combine_alt_by_predicate, file="../graphs/certainty_comebine_alt_by_predicate.pdf", width=6, height=3)
-
-certainty_alt_by_predicate <- ggplot(data = certainty_summary_alt |>
-                                       # filter(!utterance_type %in% c("MC")) |>
-                                       mutate(utterance_type = ifelse(as.character(utterance_type) %in% c("MC","polar"), "pos", as.character(utterance_type))),
-                                     mapping = aes(x = certainty_content,
-                                                   y = mean_certainty_rating,
-                                                   alpha = utterance_type,
-                                                   color = predicate)) +
-  geom_point(aes(size=count),
-             stat="identity",
-             position=dodge,
-             show.legend = FALSE) +
-  geom_errorbar(aes(ymin=YMin,
-                    ymax=YMax),
-                position="dodge2",
-                width=.2,
-                color="black") +
-  geom_hline(yintercept = 0.5,
-             alpha = 0.7,
-             color = "grey",
-             linetype = "dashed") +
-  facet_grid(. ~ predicate,
-             labeller = predicate_labeller) +
-  scale_alpha_discrete(range=c(.3,.8), # include both p and not p (more opaque). 
-                       labels=c("not p", "p"),
-                       name="Embedded\ncontent") +
-  scale_color_manual(values=cbPalette,
-                     labels=c("Filler", "Polar", "think", "know", "say", "confirm", "inform"),
-                     guide="none") +
-  labs(x = "Rated content",
-       y = "Mean certainty of the embedded content") +
-  scale_y_continuous(limits = c(0,1))
-# +scale_x_discrete(guide = guide_axis(angle = 45)) 
-certainty_alt_by_predicate
-ggsave(certainty_alt_by_predicate, file="../graphs/certainty_alt_by_predicate.pdf", width=6, height=3)
-
-
-###### Analysis ######
-df.belief_data <- df.data.summary |>
-  filter(predicate %in% c("know", "think", "simple"),
-         # trigger_class == "Critical",
-         # (utterance_type == "neg" & belief_content == "not_p") |
-         #   (utterance_type != "neg" & belief_content == "p"))
-         belief_content == "p")
-belief_model <- lmer(belief_response ~  predicate + (predicate | workerid) + (predicate | content),
-                     df.belief_data)
-
-joint_tests(belief_model)
-summary(belief_model)
-
-
-df.certainty_data <- df.data.summary |>
-  filter(
-    predicate %in% c("know", "think", "simple"),
-         # trigger_class == "Critical",
-         belief_content == certainty_content)
-
-certainty_model <- lmer(certainty_response ~ predicate + (predicate | workerid) + (predicate | content),
-                        df.certainty_data)
-joint_tests(certainty_model)
-summary(certainty_model)
-
-cor(df.certainty_data$certainty_response, df.certainty_data$belief_rating,
-    method = "spearman")
-

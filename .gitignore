@@ -2,5 +2,4 @@
 
 # test files
 test_files/
-test_rate.csv
-test_2afc.csv
+*.csv
