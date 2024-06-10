@@ -3,6 +3,7 @@ from tqdm import tqdm
 import random
 import argparse
 from collections import defaultdict
+import os
 
 verbs = ["acknowledge","admit","announce","annoyed","right","confess","confirm","demonstrate","discover",
          "establish","hear","inform","know","pretend","prove","reveal","say","see","suggest","think","polar"]
@@ -17,7 +18,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="constructing the stimulus set for the projection task")
     parser.add_argument("--input", "-i", type=str, default="stimuli/projection_stimuli.csv")
-    parser.add_argument("--output", "-o", type=str, default="stimuli/projection_rate.csv")
+    parser.add_argument("--output", "-o", type=str, default="stimuli/projection_rate")
+    parser.add_argument("--prompt_type", "-p", type=str, default="")
     
     args = parser.parse_args()
 
@@ -42,7 +44,10 @@ if __name__ == "__main__":
             if verb == "polar":
                 target = speaker_name + " asks: " + row.polar
                 question = "Does " + speaker_name + " believe that " + embedded_content + "?"
-                alt_question = None
+                if args.prompt_type == "adv":
+                    continue
+                else:
+                    alt_question = None
             elif verb == "inform": # need additional person as the obj of inform
                 target = speaker_name + " asks: " + "Did " + ah_name + " " + verb + " Jane that " + embedded_content + "?"
                 question = "Does " + speaker_name + " believe that " + embedded_content + "?"
@@ -58,7 +63,11 @@ if __name__ == "__main__":
             stimulus["prior_type"] = prior_type
             stimulus["item"] = item
             stimulus["prior"] = prior
-            stimulus["prompt"] = "Fact: " + prior + " Sentence: " + target + " Question: " + question
+
+            if args.prompt_type == "adv":
+                stimulus["prompt"] = "Fact: " + prior + " Sentence: " + target + " Question: " + alt_question
+            else:
+                stimulus["prompt"] = "Fact: " + prior + " Sentence: " + target + " Question: " + question
             stimulus["target"] = target
             stimulus["question"] = question
             stimulus["alt_question"] = alt_question
@@ -67,5 +76,5 @@ if __name__ == "__main__":
     
     # stimuli.to_csv("test.csv", index=False)
     df = pd.DataFrame(full_stimuli)
-    df.to_csv(args.output, index=False)
+    df.to_csv(os.path.join(f"{args.output}_{args.prompt_type}.csv"), index=False)
                     
