@@ -30,13 +30,13 @@ prior.human.data <- read.csv("../../data/prior/prior_means_human.csv", header=TR
 prior.all.data <- bind_rows(lst(prior.gpt4.data, prior.gpt4o.data, prior.gpt35.data, prior.human.data), .id="model")
 prior.all.model.data <- bind_rows(lst(prior.gpt4.data, prior.gpt4o.data, prior.gpt35.data), .id="model")
 
-prior_p <- prior.all.data %>% 
+prior_all_p <- prior.all.data %>% 
   filter(embedded == "p") %>%
   mutate(model = case_when(model == "prior.gpt4.data" ~ "gpt-4",
                            model == "prior.gpt4o.data" ~ "gpt-4o",
                            model == "prior.gpt35.data" ~ "gpt-3.5-turbo",
                            model == "prior.human.data" ~ "human")) %>% 
-  select(model,prior_type, item, embedded_content, prior, rating, distribution) %>% 
+  select(model,prior_type, item, embedded_content, prior, rating, distribution, YMin, YMax) %>% 
   mutate(embedded_content = fct_relevel(embedded_content, c("Isabella ate a steak on Sunday",
                                                             "Josh learned to ride a bike yesterday",
                                                             "Emily bought a car yesterday",
@@ -56,7 +56,9 @@ prior_p <- prior.all.data %>%
                                                             "Jackson ran 10 miles",
                                                             "Grace visited her sister",
                                                             "Charley speaks Spanish",
-                                                            "Mary is pregnant")))
+                                                            "Mary is pregnant")),
+         # c(“Mary”,“Charley”,“Grace”,“Jackson”,“Jon”,“Tony”,“Owen”, “Zoe”,“Josie”,“Danny”,“Jayden”,“Emma”,“Frank”,“Olivia”, “Sophia”,“Julian”,“Mia”,“Emily”,“Josh”,“Isabella”
+         item = fct_relevel(item, c("Isabella", "Josh", "Emily", "Mia", "Julian", "Sophia", "Olivia", "Frank", "Emma", "Jayden", "Danny", "Josie", "Zoe", "Owen", "Tony", "Jon", "Jackson","Grace","Charley", "Mary")))
 
 
 ## projection data ----
@@ -67,14 +69,13 @@ projection.gpt4.data <- read.csv("../../data/projection/projection_generate_syst
 # projection.gpt4.data_og <- read.csv("../../data/projection/projection_generate_system_gpt-4-og.csv", header=TRUE)
 projection.gpt35.data <- read.csv("../../data/projection/projection_generate_system_gpt-3.5-turbo.csv", header=TRUE)
 
-projection.all.model.data <- bind_rows(lst(projection.gpt4.data, projection.gpt4o.data, projection.gpt35.data, projection.gpt4.data_og), .id="model")
+projection.all.model.data <- bind_rows(lst(projection.gpt4.data, projection.gpt4o.data, projection.gpt35.data), .id="model")
 
 projection_p <- projection.all.model.data %>% 
   filter(embedded_type == "p") %>%
   mutate(model = case_when(model == "projection.gpt4.data" ~ "gpt-4",
                            model == "projection.gpt4o.data" ~ "gpt-4o",
-                           model == "projection.gpt35.data" ~ "gpt-3.5-turbo",
-                           model == "projection.gpt4.data_og" ~ "gpt-4og")) %>%
+                           model == "projection.gpt35.data" ~ "gpt-3.5-turbo")) %>%
   select(model,verb,prior_type, item, prior, rating)
 
 projection_not_p <- projection.all.model.data %>% 
@@ -114,11 +115,11 @@ projection_all_mean <- bind_rows(lst(projection_p_mean,projection_not_p_mean), .
   mutate(embedded_type = fct_relevel(embedded_type, c("p", "not p")))
 
 ### projection: human (Degen & Tonhauser, 2021, exp2b) ----
-projection.human.data <- read.csv("../../data/projection/projection_prior_projectivity.csv", 
+projection.human.data <- read.csv("../../data/projection/projection.csv", 
                              header=TRUE)
-human_exclusion <- read.csv("../../data/projection/projection_prior_excluded.csv", 
+human_exclusion <- read.csv("../../data/projection/projection_excluded.csv", 
                             header=TRUE)
-projection.human.data = subset(projection.human.data, !is.element(assignmentid, human_exclusion$assignmentid)) %>% 
+projection.human.data <- subset(projection.human.data, !is.element(assignmentid, human_exclusion$assignmentid)) %>% 
   mutate(verb = recode(verb, be_right_that = "right", inform_Sam = "inform")) %>% 
   filter(verb!="control") %>% 
   mutate(item = gsub("([A-Za-z]+).*", "\\1", fact),
@@ -129,6 +130,21 @@ projection.human.data = subset(projection.human.data, !is.element(assignmentid, 
          rating = response) %>% 
   select(workerid, item, prior_type, rating, verb, model, embedded_type)
 
+### projection: human (Degen & Tonhauser, 2021, exp1) ----
+projection.human.data <- read.csv("../../data/projection/projection_prior.csv", 
+                                  header=TRUE)
+projection.human.data <- projection.human.data %>% 
+  mutate(verb = recode(short_trigger, be_annoyed = "annoyed", be_right = "right")) %>% 
+  filter(short_trigger!="MC") %>% 
+  mutate(item = content,
+         prior_type = recode(prior_type,factH="high_prior",factL="low_prior"),
+         model = "human",
+         embedded_type = "p") %>% 
+  rename(embedded_content = eventItem,
+         rating = projective) %>% 
+  select(workerid, item, prior_type, rating, verb, model, embedded_type)
+
+
 ### projection: models and human ----
 projection.all.data <- bind_rows(lst(projection.gpt4.data, projection.gpt4o.data, projection.gpt35.data, projection.human.data), .id="model")
 projection_all_p <- projection.all.data %>% 
@@ -137,7 +153,8 @@ projection_all_p <- projection.all.data %>%
                         projection.gpt4.data = "gpt-4",
                         projection.gpt4o.data = "gpt-4o",
                         projection.gpt35.data = "gpt-3.5-turbo",
-                        projection.human.data = "human")) %>% 
+                        projection.human.data = "human"),
+         item = str_to_title(item)) %>% 
   select(model, prior_type, item, rating, verb)
 
 projection_all_p_mean <- projection_all_p %>% 
@@ -150,17 +167,31 @@ projection_all_p_mean <- projection_all_p %>%
          YMax = mean_rating + ci_high,
          verb = fct_reorder(verb, .x=mean_rating))
 
+### projection: RSA predictions ----
+rsa_p <- read.csv("../../data/projection/RSA_results.csv", 
+                  header=TRUE) %>% 
+  left_join(prior.human.data,by=c("item","prior_type")) %>% 
+  mutate(projection_rating = prob,
+         prior_rating = rating,
+         verb = predicate) %>% 
+  select(c("projection_rating", "item", "prior_rating", "verb", "prior_type","model"))
+
+### projection: models, human, and RSA ----
+
 
 ## projection adversarial data ----
 projection.gpt4o.adv.data <- read.csv("../../data/projection/projection_generate_system_gpt-4o-adv.csv", header=TRUE) %>% 
   na.omit()
+projection.gpt4.adv.data <- read.csv("../../data/projection/projection_generate_system_gpt-4-adv.csv", header=TRUE) %>% 
+  na.omit()
 projection.gpt35.adv.data <- read.csv("../../data/projection/projection_generate_system_gpt-3.5-turbo-adv.csv", header=TRUE)
 
-projection.model.adv.data <- bind_rows(lst(projection.gpt4o.adv.data, projection.gpt35.adv.data), .id="model")
+projection.model.adv.data <- bind_rows(lst(projection.gpt4o.adv.data, projection.gpt4.adv.data, projection.gpt35.adv.data), .id="model")
 
 projection_p_adv <- projection.model.adv.data %>% 
   filter(embedded_type == "p") %>%
   mutate(model = case_when(model == "projection.gpt4o.adv.data" ~ "gpt-4o",
+                           model == "projection.gpt4.adv.data" ~ "gpt-4",
                            model == "projection.gpt35.adv.data" ~ "gpt-3.5-turbo")) %>%
   select(model,verb,prior_type, item, prior, rating)
 
@@ -191,15 +222,15 @@ projection_p_adv_mean_convert <- projection_p_adv %>%
 projection_all_p_adv_mean <- bind_rows(lst(projection_p_adv_mean_convert, projection_p_mean), 
                                        .id="question_type") %>% 
   mutate(question_type = recode(question_type, projection_p_adv_mean_convert = "not p", projection_p_mean = "p")) %>%
-  filter(model %in% c("gpt-3.5-turbo", "gpt-4o"),
+  filter(model %in% c("gpt-3.5-turbo", "gpt-4o","gpt-4"),
          verb != "polar") %>% 
   mutate(question_type = fct_relevel(question_type, c("p", "not p")))
 
 
 # 2. Plot ----
 ## prior ----
-human_prior_p <- subset(prior_p, model == "human")
-model_prior_p <- subset(prior_p, model != "human")
+human_prior_p <- subset(prior_all_p, model == "human")
+model_prior_p <- subset(prior_all_p, model != "human")
 model_prior_p$facet <- model_prior_p$model
 human_prior_p <- merge(human_prior_p,
                        data.frame(model = "human", 
@@ -209,27 +240,36 @@ prior_p_plot <- rbind(human_prior_p, model_prior_p) %>%
   mutate(is_model = ifelse(model=="human", "human", "model"))
 
 prior_embedded_p_graph <- ggplot(data = prior_p_plot,
-                           mapping = aes(y = embedded_content,
-                                      x = rating,
+                           mapping = aes(x = item,
+                                      y = rating,
                                       shape = is_model)) +
-  geom_point(aes(fill = prior_type),size=4,alpha=0.6,
-             position = position_jitter(w=0, h=0.17)) +
+  geom_point(aes(fill = prior_type),size=4,alpha=0.6) +
+  geom_errorbar(aes(ymin=YMin,
+                    ymax=YMax),
+                position=dodge,
+                width=.2) +
   geom_vline(xintercept = 0.5,
              alpha = 0.7,
              color = "grey",
              linetype = "dashed") + 
-  labs(x = "Likelihood of p",
-       y = "Embedded content",
+  coord_flip() +
+  labs(y = "Prior belief ratings of p",
+       x = "Embedded content",
        color = "prior",
        shape = "human or model") +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
-  facet_grid(. ~ facet) +
+  facet_wrap(. ~ model) +
   scale_fill_manual(values=cbPalette,
                     labels=c("high prior", "low prior"),
                     name="Prior of p") + 
-  scale_shape_manual(values=c("human"=24,"model"=21))
+  scale_shape_manual(values=c("human"=24,"model"=21)) + 
+  theme(axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.position = "top")
 prior_embedded_p_graph
-ggsave(prior_embedded_p_graph, file="../graphs/prior_models_facet.pdf", width=10, height=6)
+ggsave(prior_embedded_p_graph, file="../graphs/prior_models_facet.pdf", width=7, height=7)
 
 ## projection ----
 ### projection (models only): p ----
@@ -279,13 +319,13 @@ projection_embedded_not_p_graph <- ggplot(data = projection_not_p_mean,
        y = "Mean belief rating in not p",
        color = "prior") +
   # guides(shape="none") +
-  facet_grid(model~.,scales="free") +
+  facet_grid(model~.) +
   # scale_x_reordered() +
   scale_color_manual(values=cbPalette,
                      labels=c("high prior", "low prior"))+
   theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=0.5))
 projection_embedded_not_p_graph
-ggsave(projection_embedded_not_p_graph, file="../graphs/projection_models_not_p-facet.pdf", width=7, height=4)
+ggsave(projection_embedded_not_p_graph, file="../graphs/projection_models_not_p.pdf", width=7, height=4)
 
 ### projection (human and models): p ----
 human_projection_p_mean <- subset(projection_all_p_mean, model == "human")
@@ -302,21 +342,30 @@ projection_all_p_graph <- ggplot(data = projection_p_plot,
                                  mapping = aes(x = verb,
                                                y = mean_rating,
                                                shape = is_model)) +
-  geom_point(aes(fill=prior_type),size=4,alpha=0.6) +
+  geom_point(aes(fill=prior_type),size=3,alpha=0.6) +
+  geom_errorbar(aes(ymin=YMin,
+                  ymax=YMax),
+                # position=dodge,
+              width=.2) +
   labs(x = "Verb",
        color = "prior",
        shape = "human or model") +
+  # theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=0.4)) +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
-  # coord_flip() +x
-  facet_grid(model~.) +
+  coord_flip() +
+  facet_wrap(model~.) +
   scale_fill_manual(values=cbPalette,
                     labels=c("high prior", "low prior"),
                     name="Prior of p") +
-  theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=0.5)) +
-  scale_y_continuous(name="Mean belief in p", limits=c(0, 1)) + 
+  theme(axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.position = "top",
+        axis.title.x = element_text(size=12),
+        axis.title.y = element_text(size=12)) +
+  scale_y_continuous(name="Mean belief in p", limits=c(0,1)) + 
   scale_shape_manual(values=c("human"=24,"model"=21))
 projection_all_p_graph
-ggsave(projection_all_p_graph, file="../graphs/projection_model-human_facet.pdf", width=7, height=5)
+ggsave(projection_all_p_graph, file="../graphs/projection_model-human_facet.pdf", width=7, height=7)
 
 projection_all_p_graph <- ggplot(data = projection_all_p_mean,
                                  mapping = aes(x = verb,
@@ -375,9 +424,9 @@ projection_all_graph <- ggplot(data = projection_all_mean,
 projection_all_graph
 ggsave(projection_all_graph, file="../graphs/projection_all-facet.pdf", width=8, height=6)
 
-### prior ~ belief rating, line plot ----
-prior_projection_p <- projection_p %>% 
-  left_join(model_prior_p, by = c("model", "prior_type", "item")) %>% 
+### prior ~ projection, line plot ----
+prior_projection_p <- projection_all_p %>% 
+  left_join(prior_p, by = c("model", "prior_type", "item")) %>% 
   rename(projection_rating = rating.x) %>% 
   rename(prior_rating = rating.y) %>% 
   select(model, verb, prior_type, item, projection_rating, prior_rating)
@@ -404,18 +453,46 @@ prior_projection_verb_graph <- ggplot(data = prior_projection_p %>%
                                  aes(x=prior_rating,
                                      y=projection_rating,
                                      color=model)) +
-  geom_point(alpha=0.4) +
+  geom_point(data = prior_projection_p %>% 
+               filter(model!="human") %>% 
+               filter(verb!="polar"), alpha=0.4) +
   geom_smooth(method = "lm", fullrange=T) +
   facet_wrap( ~ verb) +
   scale_x_continuous(name="Rating of prior belief in p", 
                      limits=c(0,1),
                      breaks=c(0,0.2,0.4,0.6,0.8,1)) + 
-  scale_y_continuous(name="Mean attitude holder belief in p", limits=c(0,1)) + 
+  scale_y_continuous(name="Mean speaker belief in p", limits=c(0,1)) + 
   theme(axis.text.x = element_text(size = 10),
-        axis.text.y = element_text(size = 10)) +
+        axis.text.y = element_text(size = 10),
+        legend.position = "top") +
   scale_colour_brewer(palette = "Set2")
 prior_projection_verb_graph
 ggsave(prior_projection_verb_graph, file="../graphs/projection_prior-verb.pdf", width=10, height=8)
+
+### prior ~ projection (models, humans, RSA) ----
+prior_projection_p_rsa <- bind_rows(rsa_p, prior_projection_p)
+
+prior_projection_verb_rsa_graph <- ggplot(data = prior_projection_p_rsa %>% 
+                                        filter(verb %in% c("think", "know")),
+                                      aes(x=prior_rating,
+                                          y=projection_rating,
+                                          color=model)) +
+  geom_point(data = prior_projection_p %>% 
+               # filter(model!="human") %>% 
+               filter(verb %in% c("think", "know")), alpha=0.4) +
+  geom_smooth(method = "lm", fullrange=T) +
+  facet_wrap( ~ verb) +
+  scale_x_continuous(name="Rating of prior belief in p", 
+                     limits=c(0,1),
+                     breaks=c(0,0.2,0.4,0.6,0.8,1)) + 
+  scale_y_continuous(name="Mean speaker belief in p", limits=c(0,1)) + 
+  theme(axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.position = "top") +
+  scale_colour_brewer(palette = "Set2")
+prior_projection_verb_rsa_graph
+ggsave(prior_projection_verb_rsa_graph, file="../graphs/projection_prior_rsa-verb.pdf", width=6, height=4)
+
 
 
 ## projection adversarial ----
@@ -463,15 +540,21 @@ projection_all_p_adv_graph <- ggplot(data = projection_all_p_adv_mean,
              linetype = "dashed") + 
   labs(x = "Verb",
        y = "Mean belief rating in p",
-       color = "Prior belief in p") +
+       color = "Prior in p") +
   facet_grid(model~question_type) +
-  theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=0.4)) +
+  theme(axis.text.x = element_text(angle = 80, vjust = 0.4, hjust=0.4)) +
+  # coord_flip() +
   scale_x_reordered() +
   scale_color_manual(values=cbPalette,
-                     labels=c("high prior", "low prior")) 
+                     labels=c("high prior", "low prior")) + 
+  theme(axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.text=element_text(size=10),
+        legend.position = "top") 
 projection_all_p_adv_graph
-ggsave(projection_all_p_adv_graph, file="../graphs/projection_models_all_p_adv-facet.pdf", width=9, height=6)
-
+ggsave(projection_all_p_adv_graph, file="../graphs/projection_models_all_p_adv-facet_flip.pdf", width=6, height=6)
 
 
 #### this is from human data
@@ -506,46 +589,256 @@ content_labeller <- function(variable,value){
 
 # 3. Analysis  ----
 ## prior ----
-### gpt3.5-turbo
-prior_p_gpt35_analysis_data <- prior.all.data %>% 
-  select(model, rating, item, prior_type) %>% 
-  filter(model %in% c("prior.gpt35.data", "prior.human.data")) %>% 
-  mutate(model = ifelse(model == "prior.gpt35.data", "prior_p_gpt35", "prior_p_human"))
+### gpt3.5-turbo ----
+# prior.all.data$prior_type = relevel(as.factor(as.character(prior.all.data$prior_type)), ref="low_prior")
+# contrasts(prior.all.data$prior_type) = c(1,0)
+prior_p_gpt35_analysis_data <- prior.all.data %>%
+  filter(embedded == "p") %>% 
+  select(model, rating, item, prior_type) %>%
+  filter(model %in% c("prior.gpt35.data", "prior.human.data")) %>%
+  mutate(model = ifelse(model == "prior.gpt35.data", "prior_p_gpt35", "prior_p_human")) %>% 
+  pivot_wider(names_from = model, values_from = rating) %>% 
+  mutate(prior_type = relevel(prior_type, ref="low_prior"))
 
-prior_gpt35_base <- lmer(rating ~ model + (1 + model|item),
+#### main effect ----
+prior_gpt35 <- lmer(prior_p_gpt35 ~ prior_type + (1|item),
+                     prior_p_gpt35_analysis_data)
+summary(prior_gpt35)
+
+#### human vs. model ----
+prior_gpt35_base <- lmer(prior_p_human ~ prior_p_gpt35 + (1|item),
                          prior_p_gpt35_analysis_data)
 summary(prior_gpt35_base)
 
-prior_gpt35_condition <- lmer(rating ~ model * prior_type + (1 + model * prior_type|item),
+prior_gpt35_condition <- lmer(prior_p_human ~ prior_p_gpt35 + prior_type + (1 |item),
                               prior_p_gpt35_analysis_data)
 summary(prior_gpt35_condition)
+anova(prior_gpt35_base, prior_gpt35_condition)
 
-### gpt4
-#### data
+### gpt4 ----
+#### data ----
 prior_p_gpt4_analysis_data <- prior.all.data %>% 
+  filter(embedded == "p") %>% 
   select(model, rating, item, prior_type) %>% 
   filter(model %in% c("prior.gpt4.data", "prior.human.data")) %>% 
-  mutate(model = ifelse(model == "prior.gpt4.data", "prior_p_gpt4", "prior_p_human"))
-#### analysis
-prior_gpt4_base <- lmer(rating ~ model + (1 + model|item),
+  mutate(model = ifelse(model == "prior.gpt4.data", "prior_p_gpt4", "prior_p_human")) %>% 
+  pivot_wider(names_from = model, values_from = rating) %>% 
+  mutate(prior_type = relevel(prior_type, ref="low_prior"))
+
+#### analysis ----
+##### main effect ----
+prior_gpt4 <- lmer(prior_p_gpt4 ~ prior_type + (1|item),
+                   prior_p_gpt4_analysis_data)
+summary(prior_gpt4)
+
+##### human vs. model ----
+prior_gpt4_base <- lmer(prior_p_human ~ prior_p_gpt4 + (1|item),
                          prior_p_gpt4_analysis_data)
 summary(prior_gpt4_base)
 
-prior_gpt4_condition <- lmer(rating ~ model * prior_type + (1 + model * prior_type|item),
+prior_gpt4_condition <- lmer(prior_p_human ~ prior_p_gpt4 + prior_type + (1|item),
                              prior_p_gpt4_analysis_data)
 summary(prior_gpt4_condition)
+anova(prior_gpt4_base, prior_gpt4_condition)
 
-### gpt4o
+### gpt4o ----
+#### data
 prior_p_gpt4o_analysis_data <- prior.all.data %>% 
+  filter(embedded == "p") %>% 
   select(model, rating, item, prior_type) %>% 
   filter(model %in% c("prior.gpt4o.data", "prior.human.data")) %>% 
-  mutate(model = ifelse(model == "prior.gpt4o.data", "prior_p_gpt4", "prior_p_human"))
-prior_gpt4o_base <- lmer(rating ~ model + (1 + model|item),
+  mutate(model = ifelse(model == "prior.gpt4o.data", "prior_p_gpt4o", "prior_p_human")) %>% 
+  pivot_wider(names_from = model, values_from = rating) %>% 
+  mutate(prior_type = relevel(prior_type, ref="low_prior"))
+
+#### analysis
+##### main effect
+prior_gpt4o <- lmer(prior_p_gpt4o ~ prior_type + (1|item),
+                   prior_p_gpt4o_analysis_data)
+summary(prior_gpt4o)
+
+##### human comparison
+prior_gpt4o_base <- lmer(prior_p_human ~ prior_p_gpt4o + (1 |item),
                         prior_p_gpt4o_analysis_data)
 summary(prior_gpt4o_base)
 
-prior_gpt4o_condition <- lmer(rating ~ model * prior_type + (1 + model * prior_type|item),
+prior_gpt4o_condition <- lmer(prior_p_human ~ prior_p_gpt4o + prior_type + (1|item),
                              prior_p_gpt4o_analysis_data)
 summary(prior_gpt4o_condition)
+anova(prior_gpt4o_base, prior_gpt4o_condition)
 
-## projectivity ----
+## projection ----
+projection_p$prior_type = relevel(as.factor(projection_p$prior_type), ref = "low_prior")
+projection_all_p$prior_type = relevel(as.factor(projection_all_p$prior_type), ref = "low_prior")
+
+### RSA ----
+prior_projection_p_rsa_analysis <- prior_projection_p_rsa %>% 
+  filter(verb %in% c("know","think")) %>% 
+  mutate(model=relevel(as.factor(model),ref="human"))
+
+projection_prior_rsa <- lmer(projection_rating ~ model + prior_rating + (1+model| item) + (1|verb),
+                       prior_projection_p_rsa_analysis)
+summary(projection_prior_rsa)
+
+#### think ----
+projection_rsa_think <- lmer(projection_rating ~ model + prior_rating + (1| item),
+                       prior_projection_p_rsa_analysis %>% filter(verb=="think"))
+summary(projection_rsa_think)
+
+projection_prior_rsa_think <- lmer(projection_rating ~ model * prior_rating + (1+model| item),
+                             prior_projection_p_rsa_analysis %>% 
+                               filter(verb=="think"))
+summary(projection_prior_rsa_think)
+
+#### know ----
+projection_rsa_know <- lmer(projection_rating ~ model + prior_rating + (1| item),
+                             prior_projection_p_rsa_analysis %>% filter(verb=="know"))
+summary(projection_rsa_think)
+
+projection_prior_rsa_know <- lmer(projection_rating ~ model + prior_rating + (1| item),
+                                   prior_projection_p_rsa_analysis %>% 
+                                     filter(verb=="know"))
+summary(projection_prior_rsa_think)
+
+### gpt3.5-turbo ----
+#### data ----
+projection_human_item_mean <- projection.all.data %>% 
+  filter(model=="projection.human.data") %>% 
+  group_by(item, prior_type, verb) %>% 
+  summarize(rating = mean(rating)) %>% 
+  mutate(model = "projection_p_human",
+         item = str_to_title(item)) %>% 
+  ungroup()
+
+projection_p_gpt35_analysis_data <- projection.all.data %>% 
+  filter(embedded_type == "p") %>% 
+  select(model, verb, rating, item, prior_type) %>% 
+  filter(model == "projection.gpt35.data") %>% 
+  mutate(model = "projection_p_gpt35") %>%
+  bind_rows(projection_human_item_mean) %>% 
+  pivot_wider(names_from = model, values_from = rating) %>% 
+  mutate(prior_type = relevel(as.factor(prior_type), ref="low_prior"))
+
+#### prior type ----
+projection_gpt35 <- lmer(rating ~ prior_type + (1 +prior_type | item),
+                         projection_p %>% 
+                           filter(model == "gpt-3.5-turbo"))
+summary(projection_gpt35)
+
+#### base ----
+# models with random effect (1+model|item) and (0+model|item) failed to converge
+projection_gpt35_prior <- lmer(rating ~ prior_type + (1+prior_type | item),
+                               projection_all_p %>% 
+                                 filter(model == "gpt-3.5-turbo"))
+summary(projection_gpt35_prior)
+
+#### human vs. model ----
+projection_gpt35_base <- lmer(projection_p_human ~ projection_p_gpt35 + (1| item),
+                               projection_p_gpt35_analysis_data %>% 
+                                 filter(verb != "polar"))
+summary(projection_gpt35_base)
+
+# models with random effect structures with model failed to converge
+projection_gpt35_condition <- lmer(projection_p_human ~ projection_p_gpt35 + prior_type + (1 | item),
+                                   projection_p_gpt35_analysis_data %>% 
+                                     filter(verb != "polar"))
+summary(projection_gpt35_condition)
+anova(projection_gpt35_base, projection_gpt35_condition)
+
+### gpt4 ----
+#### data ----
+projection_p_gpt4_analysis_data <- projection.all.data %>% 
+  filter(embedded_type == "p") %>% 
+  select(model, verb, rating, item, prior_type) %>% 
+  filter(model == "projection.gpt4.data") %>% 
+  mutate(model = "projection_p_gpt4") %>%
+  bind_rows(projection_human_item_mean) %>% 
+  pivot_wider(names_from = model, values_from = rating) %>% 
+  mutate(prior_type = relevel(as.factor(prior_type), ref="low_prior"))
+
+#### prior type ----
+projection_gpt4 <- lmer(rating ~ prior_type + (1 +prior_type | item),
+                         projection_p %>% 
+                           filter(model == "gpt-4"))
+summary(projection_gpt4)
+
+#### human vs. model ----
+projection_gpt4_base <- lmer(projection_p_human ~ projection_p_gpt4 + (1|item),
+                             projection_p_gpt4_analysis_data %>% 
+                                filter(verb != "polar"))
+summary(projection_gpt4_base)
+
+projection_gpt4_condition <- lmer(projection_p_human ~ projection_p_gpt4 + prior_type + (1|item),
+                                  projection_p_gpt4_analysis_data %>% 
+                               filter(verb != "polar"))
+summary(projection_gpt4_condition)
+anova(projection_gpt4_base, projection_gpt4_condition)
+
+### gpt4o ----
+#### data ----
+#### data ----
+projection_p_gpt4o_analysis_data <- projection.all.data %>% 
+  filter(embedded_type == "p") %>% 
+  select(model, verb, rating, item, prior_type) %>% 
+  filter(model == "projection.gpt4o.data") %>% 
+  mutate(model = "projection_p_gpt4o") %>%
+  bind_rows(projection_human_item_mean) %>% 
+  pivot_wider(names_from = model, values_from = rating) %>% 
+  mutate(prior_type = relevel(as.factor(prior_type), ref="low_prior"))
+
+#### prior type ----
+projection_gpt4o <- lmer(rating ~ prior_type + (1 +prior_type | item),
+                        projection_p %>% 
+                          filter(model == "gpt-4o"))
+summary(projection_gpt4o)
+
+#### human vs. model ----
+projection_gpt4o_base <- lmer(projection_p_human ~ projection_p_gpt4o + (1|item),
+                              projection_p_gpt4o_analysis_data %>% 
+                               filter(verb != "polar"))
+summary(projection_gpt4o_base)
+
+projection_gpt4o_condition <- lmer(projection_p_human ~ projection_p_gpt4o + prior_type + (1|item),
+                                   projection_p_gpt4o_analysis_data %>% 
+                                     filter(verb != "polar"))
+summary(projection_gpt4o_condition)
+anova(projection_gpt4o_base, projection_gpt4o_condition)
+
+## projection adversarial ----
+projection_p_adv_analysis_data <- bind_rows(lst(projection_p_adv, projection_p), 
+          .id="question_type") %>% 
+  mutate(rating = ifelse(question_type == "projection_p_adv", 1-rating, rating)) %>% # convert to belief in p
+  mutate(question_type = recode(question_type, projection_p_adv = "not p", projection_p = "p")) %>%
+  filter(model %in% c("gpt-3.5-turbo", "gpt-4o"),
+         verb != "polar") %>% 
+  mutate(question_type = fct_relevel(question_type, c("p", "not p")))
+
+projection_p_adv_analysis_data$prior_type = relevel(as.factor(projection_p_adv_analysis_data$prior_type), ref="low_prior")
+projection_p_adv_analysis_data$question_type = relevel(as.factor(projection_p_adv_analysis_data$question_type), ref="p")
+
+
+### gpt3.5 ----
+adv_gpt35 <- lmer(rating ~ question_type * prior_type + (1 + prior_type * question_type|item),
+                  projection_p_adv_analysis_data %>% 
+                    filter(model == "gpt-3.5-turbo")) 
+summary(adv_gpt35)
+
+# base model (without the effect of question type)
+adv_gpt35_base <- lmer(rating ~ prior_type + (1 + prior_type |item),
+                  projection_p_adv_analysis_data %>% 
+                    filter(model == "gpt-3.5-turbo"))
+summary(adv_gpt35_base)
+anova(adv_gpt35_base, adv_gpt35)
+
+### gpt4o ----
+adv_gpt4o <- lmer(rating ~ question_type * prior_type + (1 + prior_type * question_type|item),
+                  projection_p_adv_analysis_data %>% 
+                    filter(model == "gpt-4o")) 
+summary(adv_gpt4o)
+
+# base model (without the effect of question type)
+adv_gpt4o_base <- lmer(rating ~ prior_type + (1 + prior_type |item),
+                       projection_p_adv_analysis_data %>% 
+                         filter(model == "gpt-4o"))
+summary(adv_gpt4o_base)
+anova(adv_gpt4o_base, adv_gpt4o)

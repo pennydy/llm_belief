@@ -1,0 +1,81 @@
+embedded,prior_type,item,embedded_content,prior,polar,negated
+p,high_prior,Mary,Mary is pregnant,Mary is taking a prenatal yoga class.,Is Mary pregnant?,Mary isn't pregnant
+p,high_prior,Josie,Josie went on vacation to France,Josie loves France.,Did Josie go on vacation to France?,Josie didn't go on vacation to France
+p,high_prior,Emma,Emma studied on Saturday morning,Emma is in law school.,Did Emma study on Saturday morning?,Emma didn't study on Saturday morning
+p,high_prior,Julian,Julian dances salsa,Julian is Cuban.,Does Julian dance salsa?,Julian doesn't dance salsa
+p,high_prior,Isabella,Isabella ate a steak on Sunday,Isabella is from Argentina.,Did Isabella eat a steak on Sunday?,Isabella didnt eat a steak on Sunday
+p,high_prior,Emily,Emily bought a car yesterday,Emily has been saving for a year.,Did Emily buy a car yesterday?,Emily didn't buy a car yesterday
+p,high_prior,Danny,Danny ate the last cupcake,Danny loves cake.,Did Danny eat the last cupcake?,Danny didn't eat the last cupcake
+p,high_prior,Grace,Grace visited her sister,Grace loves her sister.,Did Grace visit her sister?,Grace didn't visit her sister
+p,high_prior,Zoe,Zoe calculated the tip,Zoe is a math major.,Did Zoe calculate the tip?,Zoe didn't calculate the tip
+p,high_prior,Frank,Frank got a cat,Frank has always wanted a pet.,Did Frank get a cat?,Frank didn't get a cat
+p,high_prior,Jackson,Jackson ran 10 miles,Jackson is training for a marathon.,Did Jackson run 10 miles?,Jackson didn't run 10 miles
+p,high_prior,Jayden,Jayden rented a car,Jayden's car is in the shop.,Did Jayden rent a car?,Jayden didn't rent a car
+p,high_prior,Tony,Tony had a drink last night,Tony really likes to party with his friends.,Did Tony have a drink last night?,Tony didn't have a drink last night
+p,high_prior,Josh,Josh learned to ride a bike yesterday,Josh is a 5-year old boy.,Did Josh learn to ride a bike yesterday?,Josh didn't learn to ride a bike yesterday
+p,high_prior,Owen,Owen shoveled snow last winter,Owen lives in Chicago.,Did Owen shovel snow last winter?,Owen didn't shovel snow last winter
+p,high_prior,Olivia,Olivia sleeps until noon,Olivia works the third shift.,Does Olivia sleep until noon?,Olivia doesn't sleep until noon
+p,high_prior,Jon,Jon walks to work,Jon lives 2 blocks away from work.,Does John walk to work?,Jon doesn't walk to work
+p,high_prior,Charley,Charley speaks Spanish,Charley lives in Mexico.,Does Charley speak Spanish?,Charley doesn't speak Spanish
+p,high_prior,Mia,Mia drank 2 cocktails last night,Mia is a college student.,Did Mia drink 2 cocktails last night?,Mia didn't drink 2 cocktails last night
+p,high_prior,Sophia,Sophia got a tattoo,Sophia is a hipster.,Did Sophia get a tattoo?,Sophia didn't get a tattoo
+p,low_prior,Mary,Mary is pregnant,Mary is a middle school student.,Is Mary pregnant?,Mary isn't pregnant
+p,low_prior,Josie,Josie went on vacation to France,Josie doesn't have a passport,Did Josie go on vacation to France?,Josie didn't go on vacation to France
+p,low_prior,Emma,Emma studied on Saturday morning,Emma is in first grade.,Did Emma study on Saturday morning?,Emma didn't study on Saturday morning
+p,low_prior,Julian,Julian dances salsa,Julian is German.,Does Julian dance salsa?,Julian doesn't dance salsa
+p,low_prior,Isabella,Isabella ate a steak on Sunday,Isabella is a vegetarian.,Did Isabella eat a steak on Sunday?,Isabella didnt eat a steak on Sunday
+p,low_prior,Emily,Emily bought a car yesterday,Emily never has any money.,Did Emily buy a car yesterday?,Emily didn't buy a car yesterday
+p,low_prior,Danny,Danny ate the last cupcake,Danny is a diabetic.,Did Danny eat the last cupcake?,Danny didn't eat the last cupcake
+p,low_prior,Grace,Grace visited her sister,Grace hates her sister.,Did Grace visit her sister?,Grace didn't visit her sister
+p,low_prior,Zoe,Zoe calculated the tip,Zoe is 5 years old.,Did Zoe calculate the tip?,Zoe didn't calculate the tip
+p,low_prior,Frank,Frank got a cat,Frank is allergic to cats.,Did Frank get a cat?,Frank didn't get a cat
+p,low_prior,Jackson,Jackson ran 10 miles,Jackson is obese.,Did Jackson run 10 miles?,Jackson didn't run 10 miles
+p,low_prior,Jayden,Jayden rented a car,Jayden doesn't have a driver's license.,Did Jayden rent a car?,Jayden didn't rent a car
+p,low_prior,Tony,Tony had a drink last night,Tony has been sober for 20 years.,Did Tony have a drink last night?,Tony didn't have a drink last night
+p,low_prior,Josh,Josh learned to ride a bike yesterday,Josh is a 75-year old man.,Did Josh learn to ride a bike yesterday?,Josh didn't learn to ride a bike yesterday
+p,low_prior,Owen,Owen shoveled snow last winter,Owen lives in New Orleans.,Did Owen shovel snow last winter?,Owen didn't shovel snow last winter
+p,low_prior,Olivia,Olivia sleeps until noon,Olivia has two small children.,Does Olivia sleep until noon?,Olivia doesn't sleep until noon
+p,low_prior,Jon,Jon walks to work,Jon lives 10 miles away from work.,Does John walk to work?,Jon doesn't walk to work
+p,low_prior,Charley,Charley speaks Spanish,Charley lives in Korea.,Does Charley speak Spanish?,Charley doesn't speak Spanish
+p,low_prior,Mia,Mia drank 2 cocktails last night,Mia is a nun.,Did Mia drink 2 cocktails last night?,Mia didn't drink 2 cocktails last night
+p,low_prior,Sophia,Sophia got a tattoo,Sophia is a high end fashion model.,Did Sophia get a tattoo?,Sophia didn't get a tattoo
+not_p,high_prior,Mary,Mary is not pregnant,Mary is taking a prenatal yoga class.,Is Mary pregnant?,Mary is pregnant
+not_p,high_prior,Josie,Josie didn't go on vacation to France,Josie loves France.,Did Josie go on vacation to France?,Josie went on vacation to France
+not_p,high_prior,Emma,Emma didn't study on Saturday morning,Emma is in law school.,Did Emma study on Saturday morning?,Emma studied on Saturday morning
+not_p,high_prior,Julian,Julian doesn't dance salsa,Julian is Cuban.,Does Julian dance salsa?,Julian dances salsa
+not_p,high_prior,Isabella,Isabella didnt eat a steak on Sunday,Isabella is from Argentina.,Did Isabella eat a steak on Sunday?,Isabella ate a steak on Sunday
+not_p,high_prior,Emily,Emily didn't buy a car yesterday,Emily has been saving for a year.,Did Emily buy a car yesterday?,Emily bought a car yesterday
+not_p,high_prior,Danny,Danny didn't eat the last cupcake,Danny loves cake.,Did Danny eat the last cupcake?,Danny ate the last cupcake
+not_p,high_prior,Grace,Grace didn't visit her sister,Grace loves her sister.,Did Grace visit her sister?,Grace visited her sister
+not_p,high_prior,Zoe,Zoe didn't calculate the tip,Zoe is a math major.,Did Zoe calculate the tip?,Zoe calculated the tip
+not_p,high_prior,Frank,Frank didn't get a cat,Frank has always wanted a pet.,Did Frank get a cat?,Frank got a cat
+not_p,high_prior,Jackson,Jackson didn't run 10 miles,Jackson is training for a marathon.,Did Jackson run 10 miles?,Jackson ran 10 miles
+not_p,high_prior,Jayden,Jayden didn't rent a car,Jayden's car is in the shop.,Did Jayden rent a car?,Jayden rented a car
+not_p,high_prior,Tony,Tony didn't have a drink last night,Tony really likes to party with his friends.,Did Tony have a drink last night?,Tony had a drink last night
+not_p,high_prior,Josh,Josh didn't learn to ride a bike yesterday,Josh is a 5-year old boy.,Did Josh learn to ride a bike yesterday?,Josh learned to ride a bike yesterday
+not_p,high_prior,Owen,Owen didn't shovel snow last winter,Owen lives in Chicago.,Did Owen shovel snow last winter?,Owen shoveled snow last winter
+not_p,high_prior,Olivia,Olivia doesn't sleep until noon,Olivia works the third shift.,Does Olivia sleep until noon?,Olivia sleeps until noon
+not_p,high_prior,Jon,Jon doesn't walk to work,Jon lives 2 blocks away from work.,Does John walk to work?,Jon walks to work
+not_p,high_prior,Charley,Charley doesn't speak Spanish,Charley lives in Mexico.,Does Charley speak Spanish?,Charley speaks Spanish
+not_p,high_prior,Mia,Mia didn't drink 2 cocktails last night,Mia is a college student.,Did Mia drink 2 cocktails last night?,Mia drank 2 cocktails last night
+not_p,high_prior,Sophia,Sophia didn't get a tattoo,Sophia is a hipster.,Did Sophia get a tattoo?,Sophia got a tattoo
+not_p,low_prior,Mary,Mary is not pregnant,Mary is a middle school student.,Is Mary pregnant?,Mary is pregnant
+not_p,low_prior,Josie,Josie didn't go on vacation to France,Josie doesn't have a passport,Did Josie go on vacation to France?,Josie went on vacation to France
+not_p,low_prior,Emma,Emma didn't study on Saturday morning,Emma is in first grade.,Did Emma study on Saturday morning?,Emma studied on Saturday morning
+not_p,low_prior,Julian,Julian doesn't dance salsa,Julian is German.,Does Julian dance salsa?,Julian dances salsa
+not_p,low_prior,Isabella,Isabella didnt eat a steak on Sunday,Isabella is a vegetarian.,Did Isabella eat a steak on Sunday?,Isabella ate a steak on Sunday
+not_p,low_prior,Emily,Emily didn't buy a car yesterday,Emily never has any money.,Did Emily buy a car yesterday?,Emily bought a car yesterday
+not_p,low_prior,Danny,Danny didn't eat the last cupcake,Danny is a diabetic.,Did Danny eat the last cupcake?,Danny ate the last cupcake
+not_p,low_prior,Grace,Grace didn't visit her sister,Grace hates her sister.,Did Grace visit her sister?,Grace visited her sister
+not_p,low_prior,Zoe,Zoe didn't calculate the tip,Zoe is 5 years old.,Did Zoe calculate the tip?,Zoe calculated the tip
+not_p,low_prior,Frank,Frank didn't get a cat,Frank is allergic to cats.,Did Frank get a cat?,Frank got a cat
+not_p,low_prior,Jackson,Jackson didn't run 10 miles,Jackson is obese.,Did Jackson run 10 miles?,Jackson ran 10 miles
+not_p,low_prior,Jayden,Jayden didn't rent a car,Jayden doesn't have a driver's license.,Did Jayden rent a car?,Jayden rented a car
+not_p,low_prior,Tony,Tony didn't have a drink last night,Tony has been sober for 20 years.,Did Tony have a drink last night?,Tony had a drink last night
+not_p,low_prior,Josh,Josh didn't learn to ride a bike yesterday,Josh is a 75-year old man.,Did Josh learn to ride a bike yesterday?,Josh learned to ride a bike yesterday
+not_p,low_prior,Owen,Owen didn't shovel snow last winter,Owen lives in New Orleans.,Did Owen shovel snow last winter?,Owen shoveled snow last winter
+not_p,low_prior,Olivia,Olivia doesn't sleep until noon,Olivia has two small children.,Does Olivia sleep until noon?,Olivia sleeps until noon
+not_p,low_prior,Jon,Jon doesn't walk to work,Jon lives 10 miles away from work.,Does John walk to work?,Jon walks to work
+not_p,low_prior,Charley,Charley doesn't speak Spanish,Charley lives in Korea.,Does Charley speak Spanish?,Charley speaks Spanish
+not_p,low_prior,Mia,Mia didn't drink 2 cocktails last night,Mia is a nun.,Did Mia drink 2 cocktails last night?,Mia drank 2 cocktails last night
+not_p,low_prior,Sophia,Sophia didn't get a tattoo,Sophia is a high end fashion model.,Did Sophia get a tattoo?,Sophia got a tattoo
