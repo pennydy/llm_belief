@@ -44,6 +44,8 @@ if __name__ == "__main__":
             if verb == "polar":
                 target = speaker_name + " asks: " + row.polar
                 question = "Does " + speaker_name + " believe that " + embedded_content + "?"
+                if args.prompt_type == "certainty":
+                    question = "Is " + speaker_name + " certain that " + embedded_content + "?"
                 if args.prompt_type == "adv":
                     continue
                 else:
@@ -52,11 +54,17 @@ if __name__ == "__main__":
                 target = speaker_name + " asks: " + "Did " + ah_name + " " + verb + " Jane that " + embedded_content + "?"
                 question = "Does " + speaker_name + " believe that " + embedded_content + "?"
                 alt_question = "Does " + speaker_name + " believe that " + negated_content + "?"
+                if args.prompt_type == "certainty":
+                    question = "Is " + speaker_name + " certain that " + embedded_content + "?"
+                    alt_question = "Is " + speaker_name + " certain that " + negated_content + "?"
             else:
                 aux = "Does" if verb in ["know","think"] else "Is" if verb in ["annoyed","right"] else "Did"
                 target = speaker_name + " asks: " + aux + " " + ah_name + " " + verb + " that " + embedded_content + "?"
                 question = "Does " + speaker_name + " believe that " + embedded_content + "?"
                 alt_question = "Does " + speaker_name + " believe that " + negated_content + "?"
+                if args.prompt_type == "certainty":
+                    question = "Is " + speaker_name + " certain that " + embedded_content + "?"
+                    alt_question = "Is " + speaker_name + " certain that " + negated_content + "?"
 
             stimulus["verb"] = verb
             stimulus["embedded_type"] = embedded_type

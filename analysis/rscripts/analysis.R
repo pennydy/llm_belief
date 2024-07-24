@@ -30,6 +30,7 @@ prior.human.data <- read.csv("../../data/prior/prior_means_human.csv", header=TR
 prior.all.data <- bind_rows(lst(prior.gpt4.data, prior.gpt4o.data, prior.gpt35.data, prior.human.data), .id="model")
 prior.all.model.data <- bind_rows(lst(prior.gpt4.data, prior.gpt4o.data, prior.gpt35.data), .id="model")
 
+# reorder based on human ratings
 prior_all_p <- prior.all.data %>% 
   filter(embedded == "p") %>%
   mutate(model = case_when(model == "prior.gpt4.data" ~ "gpt-4",
@@ -65,17 +66,20 @@ prior_all_p <- prior.all.data %>%
 projection.gpt4o.data <- read.csv("../../data/projection/projection_generate_system_gpt-4o.csv", header=TRUE) %>% 
   na.omit()
 projection.gpt4.data <- read.csv("../../data/projection/projection_generate_system_gpt-4.csv", header=TRUE)
-# additional run on gpt4 because of the unpredictable results
+# additional run with gpt4 because of the unpredictable results
 # projection.gpt4.data_og <- read.csv("../../data/projection/projection_generate_system_gpt-4-og.csv", header=TRUE)
+# additional run with gpt4 with certainty prompt
+projection.gpt4.data_certainty <- read.csv("../../data/projection/projection_generate_system_gpt-4-certainty.csv", header=TRUE)
 projection.gpt35.data <- read.csv("../../data/projection/projection_generate_system_gpt-3.5-turbo.csv", header=TRUE)
 
-projection.all.model.data <- bind_rows(lst(projection.gpt4.data, projection.gpt4o.data, projection.gpt35.data), .id="model")
+projection.all.model.data <- bind_rows(lst(projection.gpt4.data, projection.gpt4o.data, projection.gpt35.data, projection.gpt4.data_certainty), .id="model")
 
 projection_p <- projection.all.model.data %>% 
   filter(embedded_type == "p") %>%
   mutate(model = case_when(model == "projection.gpt4.data" ~ "gpt-4",
                            model == "projection.gpt4o.data" ~ "gpt-4o",
-                           model == "projection.gpt35.data" ~ "gpt-3.5-turbo")) %>%
+                           model == "projection.gpt35.data" ~ "gpt-3.5-turbo",
+                           model == "projection.gpt4.data_certainty" ~ "gpt-4-certainty")) %>%
   select(model,verb,prior_type, item, prior, rating)
 
 projection_not_p <- projection.all.model.data %>% 
@@ -146,14 +150,15 @@ projection.human.data <- projection.human.data %>%
 
 
 ### projection: models and human ----
-projection.all.data <- bind_rows(lst(projection.gpt4.data, projection.gpt4o.data, projection.gpt35.data, projection.human.data), .id="model")
+projection.all.data <- bind_rows(lst(projection.gpt4.data, projection.gpt4o.data, projection.gpt35.data, projection.human.data, projection.gpt4.data_certainty), .id="model")
 projection_all_p <- projection.all.data %>% 
   filter(embedded_type == "p") %>%
   mutate(model = recode(model, 
                         projection.gpt4.data = "gpt-4",
                         projection.gpt4o.data = "gpt-4o",
                         projection.gpt35.data = "gpt-3.5-turbo",
-                        projection.human.data = "human"),
+                        projection.human.data = "human",
+                        projection.gpt4.data_certainty = "gpt-4-certainty"),
          item = str_to_title(item)) %>% 
   select(model, prior_type, item, rating, verb)
 
@@ -297,7 +302,7 @@ projection_embedded_p_graph <- ggplot(data = projection_p_mean,
   scale_color_manual(values=cbPalette,
                      labels=c("high prior", "low prior")) 
 projection_embedded_p_graph
-ggsave(projection_embedded_p_graph, file="../graphs/projection_models_p-facet.pdf", width=6, height=8)
+ggsave(projection_embedded_p_graph, file="../graphs/projection_models_p_certainty-facet.pdf", width=6, height=8)
 
 
 ### projection (models only): not p ----

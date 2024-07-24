@@ -11,7 +11,8 @@ logger = logging.getLogger()
 client = OpenAI()
 # add a system prompt: only provide numerical ratings
 prior_info = "You will read a fact about the world and are asked to assess how likely an event is, given that fact. Please provide a rating from 0 to 1, where 0 means impossible and 1 means definitely. "
-projection_info = "In this experiment, we ask you to imagine that you are at a party. You walk into the kitchen and overhear somebody ask another person a question. In addition to the question, we also tell you a fact to consider. You will assess whether the speaker believes in something, given what the speaker asks. Please provide a rating from 0 to 1, where 0 means the speakers definitely doesn't believe it and 1 means the speaker definitely believes it. "
+# projection_info = "In this experiment, we ask you to imagine that you are at a party. You walk into the kitchen and overhear somebody ask another person a question. In addition to the question, we also tell you a fact to consider. You will assess whether the speaker believes in something, given what the speaker asks. Please provide a rating from 0 to 1, where 0 means the speaker definitely doesn't believe it and 1 means the speaker definitely believes it. "
+projection_info = "In this experiment, we ask you to imagine that you are at a party. You walk into the kitchen and overhear somebody ask another person a question. In addition to the question, we also tell you a fact to consider. You will assess if the speaker is certain about something, given what the speaker asks. Please provide a rating from 0 to 1, where 0 means the speaker is not certain about it and 1 means the speaker is certain. "
 # projection_info = "You will read a sentence in which a person is asking about something. In addition to the question, we also tell you a fact to consider. You will assess whether the speaker believes in something, given what the speaker asks. Please provide a rating from 0 to 1, where 0 means the speakers definitely doesn't believe it and 1 means the speaker definitely believes it. "
 
 def softmax(x):
@@ -81,4 +82,4 @@ if __name__ == "__main__":
 
         # prompts.to_csv(f"{args.task}_generate_system_{args.model}.csv", index=False)
         output_dir = args.output_dir + args.task
-        prompts.to_csv(os.path.join(output_dir,f"{args.task}_generate_system_{args.model}-adv.csv"), index=False)
+        prompts.to_csv(os.path.join(output_dir,f"{args.task}_generate_system_{args.model}-certainty.csv"), index=False)
