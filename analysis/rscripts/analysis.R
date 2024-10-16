@@ -1208,7 +1208,7 @@ summary(prior_gpt4o_condition)
 anova(prior_gpt4o_base, prior_gpt4o_condition)
 
 ## projection ----
-### new rsa and models (belief) vs. human analysis ----
+### new rsa and models (certainty) vs. human analysis ----
 projection_all_model_pivot <- projection_certainty_model_prior %>% 
   bind_rows(rsa_data) %>% 
   filter(embedded_type=="p") %>%
