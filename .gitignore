@@ -6,3 +6,7 @@ test_files/
 .Rproj.user
 test_*.csv
 
+# writings
+writings/NAACL2025_*
+writings/NAACL_presentation*
+writings/NAACL_poster.key

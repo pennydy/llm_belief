@@ -69,8 +69,7 @@ prior_all_not_p <- prior_all %>%
   filter(embedded_type == "not_p")
 
 ### projection: human (Degen & Tonhauser, 2021, exp1) ----
-projection.human.data <- read.csv("../../data/projection/projection_prior.csv", 
-                                  header=TRUE)
+projection.human.data <- read.csv("../../data/projection/projection_prior.csv", header=TRUE)
 projection.human.data <- projection.human.data %>% 
   mutate(verb = recode(short_trigger, be_annoyed = "annoyed", be_right = "right")) %>% 
   filter(short_trigger!="MC") %>% 
@@ -238,18 +237,23 @@ prior_embedded_p_graph <- ggplot(data = prior_p_plot,
        color = "prior",
        shape = "human or model") +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
-  facet_wrap(. ~ model) +
+  facet_grid(.~model) +
   scale_fill_manual(values=cbPalette,
                     labels=c("high prior", "low prior"),
                     name="Prior of p") + 
   scale_shape_manual(values=c("human"=24,"model"=21)) + 
-  theme(axis.text.x = element_text(size = 10),
+  theme(legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12),
+        strip.text = element_text(size = 12),
+        # axis.text.x = element_text(size = 10),
+        axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=0.4, size=10),
         axis.text.y = element_text(size = 10),
         axis.title.x = element_text(size = 14),
         axis.title.y = element_text(size = 14),
         legend.position = "top")
 prior_embedded_p_graph
-ggsave(prior_embedded_p_graph, file="../graphs/prior_models_facet.pdf", width=7, height=7)
+# ggsave(prior_embedded_p_graph, file="../graphs/prior_models_facet.pdf", width=7, height=7)
+ggsave(prior_embedded_p_graph, file="../graphs/prior_models_facet_1.pdf", width=10, height=4)
 
 ## projection ----
 ### projection certainty (models only): p ----
@@ -335,11 +339,16 @@ projection_certainty_all_p_graph <- ggplot(data = projection_certainty_p_plot %>
   # theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=0.4)) +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
   coord_flip() +
-  facet_wrap(model~.) +
+  # facet_wrap(model~.) +
+  facet_grid(.~model)+
   scale_fill_manual(values=cbPalette,
                     labels=c("high prior", "low prior"),
                     name="Prior of p") +
-  theme(axis.text.x = element_text(size = 10),
+  theme(legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12),
+        strip.text = element_text(size = 12),
+        # axis.text.x = element_text(size = 10),
+        axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=0.4, size=10),
         axis.text.y = element_text(size = 10),
         legend.position = "top",
         axis.title.x = element_text(size=14),
@@ -347,7 +356,8 @@ projection_certainty_all_p_graph <- ggplot(data = projection_certainty_p_plot %>
   scale_y_continuous(name="Mean certainty ratings of p", limits=c(0,1)) + 
   scale_shape_manual(values=c("human"=24,"model"=21))
 projection_certainty_all_p_graph
-ggsave(projection_certainty_all_p_graph, file="../graphs/projection_certainty_model-human_facet.pdf", width=7, height=7)
+# ggsave(projection_certainty_all_p_graph, file="../graphs/projection_certainty_model-human_facet.pdf", width=7, height=7)
+ggsave(projection_certainty_all_p_graph, file="../graphs/projection_certainty_model-human_facet_1.pdf", width=10, height=4)
 
 # facet in columns
 projection_certainty_all_p_graph_col <- ggplot(data = projection_certainty_p_plot,
@@ -413,7 +423,6 @@ ggsave(prior_projection_certainty_human_verb_graph, file="../graphs/projection_p
 # prior_projection_certainty_p <- projection_certainty_model_prior %>% 
 #   filter(embedded_type == "p") %>% 
 #   select(model, verb, prior_type, item, projection_rating, prior_rating)
-
 prior_projection_certainty_rsa_graph <- ggplot(data = prior_projection_certainty_p_rsa %>% 
                                                       filter(verb %in% c("think", "know")),
                                                     aes(x=prior_rating,
@@ -423,7 +432,6 @@ prior_projection_certainty_rsa_graph <- ggplot(data = prior_projection_certainty
                # filter(model!="human") %>% 
                filter(verb %in% c("think", "know")), alpha=0.4) +
   geom_smooth(method = "lm", fullrange=T) +
-  # facet_wrap( ~ verb) +
   scale_x_continuous(name="Rating of prior belief in p", 
                      limits=c(0,1),
                      breaks=c(0,0.2,0.4,0.6,0.8,1)) + 
@@ -431,10 +439,11 @@ prior_projection_certainty_rsa_graph <- ggplot(data = prior_projection_certainty
   theme(axis.text.x = element_text(size = 10),
         axis.text.y = element_text(size = 10),
         legend.position = "top") +
-  scale_colour_brewer(palette = "Set2")
+  scale_colour_brewer(palette = "Set2") 
 prior_projection_certainty_rsa_graph
-ggsave(prior_projection_certainty_rsa_graph, file="../graphs/projection_prior_certainty_rsa-all.pdf", width=6, height=4)
+ggsave(prior_projection_certainty_rsa_graph, file="../graphs/projection_prior_certainty_rsa-all_legend.pdf", width=6, height=4)
 
+### prior ~ projection certainty, facet by verb (models, humans, RSA) ----
 # no polar because it is not included in Degen & Tonhauser 2021
 prior_projection_certainty_verb_rsa_graph <- ggplot(data = prior_projection_certainty_p_rsa %>% 
                                                       filter(verb %in% c("think", "know")),
@@ -543,7 +552,7 @@ summary(prior_gpt4o_condition)
 anova(prior_gpt4o_base, prior_gpt4o_condition)
 
 ## projection ----
-### new rsa and models (certainty) vs. human analysis ----
+### rsa and models (certainty) vs. human analysis ----
 projection_all_model_pivot <- projection_certainty_model_prior %>% 
   bind_rows(rsa_data) %>% 
   filter(embedded_type=="p") %>%
@@ -574,6 +583,7 @@ rsa_base <- lmer(human ~ RSA + (1|item) + (1|workerid),
 summary(rsa_base)
 AIC(rsa_base)
 
+# by verb AIC
 rsa_think_base <- lmer(human ~ RSA + (1|item),
                  model_rsa_analysis %>%
                    filter(verb=="think"))
@@ -603,6 +613,7 @@ gpt4o_base <- lmer(human ~ gpt4o + (1|item) + (1|workerid),
 summary(gpt4o_base)
 AIC(gpt4o_base)
 
+# by verb AIC
 gpt4o_think_base <- lmer(human ~ gpt4o + (1|item),
                    model_rsa_analysis %>% 
                      filter(verb=="think"))
@@ -659,6 +670,8 @@ AIC(gpt4_know_base)
 gpt4_rsa <- lmer(human ~ gpt4 + RSA + (1|item)+ (1|workerid),
                  model_rsa_analysis)
 summary(gpt4_rsa)
+
+# comparing having or not having RSA as a factor
 anova(gpt4_base, gpt4_rsa)
 # comparing having or not having LLM as a factor
 anova(rsa_base, gpt4_rsa)
@@ -714,99 +727,16 @@ gpt35_prior_rsa <- lmer(human ~ gpt35 + RSA+ prior_type + (1+prior_type|item)+ (
                         model_rsa_analysis)
 summary(gpt35_prior_rsa)
 
-
-### original projection analysis with certainty rating ----
-# include rsa, effect of model
-projection_certainty_all_prior <-
-  projection_certainty_model_human %>% 
-  select(model, verb, prior_type, item, projection_rating, prior_rating, embedded_type) %>% 
-  bind_rows(rsa_data) %>% 
-  filter(embedded_type=="p") %>%
-  filter(verb %in% c("think", "know")) %>% 
-  mutate(prior_type = fct_relevel(prior_type, ref="low_prior"),
-         model = fct_relevel(model, ref="human"))
-
-projection_certainty_model_analysis_think <- lmer(projection_rating ~ model + prior_type + (1+model+prior_type|item), projection_certainty_all_prior %>% filter(verb=="think"))
-summary(projection_certainty_model_analysis_think)
-
-projection_certainty_model_analysis_know <- lmer(projection_rating ~ model + prior_type + (1+model+prior_type|item), projection_certainty_all_prior %>% filter(verb=="know"))
-summary(projection_certainty_model_analysis_know)
-
-# for to test if model can capture the effect of prior
-projection_certainty_verb_model_pivot <- projection_certainty_model_prior %>% 
-  filter(embedded_type=="p") %>%
-  filter(verb!="polar") %>% 
-  select(model, verb, prior_type, item, projection_rating) %>% 
-  pivot_wider(names_from=model, values_from=projection_rating) %>% 
-  rename(gpt4="gpt-4",gpt4o="gpt-4o",gpt35="gpt-3.5-turbo") %>% 
-  mutate(prior_type = relevel(as.factor(prior_type), ref="low_prior"))
-
-# for human vs. model comparison
-# this differs from the previous one such that it includes all verbs
-projection_certainty_analysis <- projection_certainty_verb_model_pivot %>% 
-  merge(projection.human.data %>% 
-          mutate(item=str_to_title(item))) %>% 
-  select(-c(model, embedded_type)) %>% 
-  rename(human=projection_rating)
-
-#### gpt3.5-turbo ----
-##### prior type ----
-projection_certainty_gpt35 <- lmer(gpt35 ~ prior_type + (1+prior_type|item),
-                                   projection_certainty_verb_model_pivot)
-summary(projection_certainty_gpt35)
-
-##### human vs. model comparison ----
-projection_certainty_gpt35_base <- lmer(human ~ gpt35 + (1|item) + (1|workerid),
-                                        projection_certainty_analysis)
-summary(projection_certainty_gpt35_base)
-projection_certainty_gpt35_prior <- lmer(human ~ gpt35 + prior_type + (1+prior_type|item) + (1+prior_type|workerid),
-                                         projection_certainty_analysis)
-summary(projection_certainty_gpt35_prior)
-
-anova(projection_certainty_gpt35_base,projection_certainty_gpt35_prior)
-
-#### gpt4 ----
-projection_certainty_gpt4 <- lmer(gpt4 ~ prior_type + (1+prior_type|item),
-                                  projection_certainty_verb_model_pivot)
-summary(projection_certainty_gpt4)
-
-##### human vs. model comparison ----
-projection_certainty_gpt4_base <- lmer(human ~ gpt4 + (1|item) + (1|workerid),
-                                       projection_certainty_analysis)
-summary(projection_certainty_gpt4_base)
-projection_certainty_gpt4_prior <- lmer(human ~ gpt4 + prior_type + (1+prior_type|item) + (1+prior_type|workerid),
-                                        projection_certainty_analysis)
-summary(projection_certainty_gpt4_prior)
-
-anova(projection_certainty_gpt4_base,projection_certainty_gpt4_prior)
-
-#### gpt4o ----
-projection_certainty_gpt4o <- lmer(gpt4o ~ prior_type + (1+prior_type|item),
-                                   projection_certainty_verb_model_pivot)
-summary(projection_certainty_gpt4o)
-
-##### human vs. model comparison ----
-projection_certainty_gpt4o_base <- lmer(human ~ gpt4o + (1|item)+(1|workerid),
-                                        projection_certainty_analysis)
-summary(projection_certainty_gpt4_base)
-projection_certainty_gpt4o_prior <- lmer(human ~ gpt4o + prior_type + (1+prior_type|item) + (1+prior_type|workerid),
-                                         projection_certainty_analysis)
-summary(projection_certainty_gpt4o_prior)
-
-anova(projection_certainty_gpt4o_base,projection_certainty_gpt4o_prior)
-
-
-### original analysis ----
-### RSA ----
+### exploratory by-verb analysis ----
 prior_projection_p_rsa_analysis <- prior_projection_certainty_p_rsa %>% 
   filter(verb %in% c("know","think")) %>% 
   mutate(model=relevel(as.factor(model),ref="human"),
          centered_prior_rating=scale(prior_rating, scale=FALSE))
 
 #### both verbs ----
-projection_prior_rsa <- lmer(projection_rating ~ model + centered_prior_rating + verb + (1+model| item),
-                             prior_projection_p_rsa_analysis)
-summary(projection_prior_rsa)
+# projection_prior_rsa <- lmer(projection_rating ~ model + centered_prior_rating + verb + (1+model| item),
+#                              prior_projection_p_rsa_analysis)
+# summary(projection_prior_rsa)
 
 
 #### think ----
@@ -829,107 +759,63 @@ projection_prior_rsa_know <- lmer(projection_rating ~ model + prior_type + (1+pr
                                     filter(verb=="know"))
 summary(projection_prior_rsa_know)
 
-### gpt3.5-turbo ----
-#### data ----
-projection_human_item_mean <- projection.model.human.data %>% 
-  filter(model=="human") %>% 
-  group_by(item, prior_type, verb) %>% 
-  summarize(rating = mean(projection_rating)) %>% 
-  mutate(model = "projection_p_human",
-         item = str_to_title(item)) %>% 
-  ungroup() %>% 
-  rename(projection_rating = rating)
+# (schematized plots of modulating factors, for slides) ----
+prior <- c("German", "Cuban")
+prior_rating <- c(0.4, 0.61)
+prior_schema.df <- data.frame(prior=prior,rating=prior_rating)
+prior_schema.df$prior <- factor(prior_schema.df$prior, levels = rev(levels(factor(prior_schema.df$prior))))
 
-projection_p_gpt35_analysis_data <- projection.model.human.data %>% 
-  filter(embedded_type == "p") %>% 
-  select(model, verb, projection_rating, item, prior_type) %>% 
-  filter(model == "gpt-3.5-turbo") %>% 
-  mutate(model = "projection_p_gpt35") %>%
-  bind_rows(projection_human_item_mean) %>% 
-  pivot_wider(names_from = model, values_from = projection_rating) %>% 
-  mutate(prior_type = relevel(as.factor(prior_type), ref="low_prior"))
-
-#### prior type ----
-projection_gpt35 <- lmer(projection_rating ~ prior_type + (1 +prior_type | item),
-                         projection_model_p %>% 
-                           filter(model == "gpt-3.5-turbo"))
-summary(projection_gpt35)
-
-#### human vs. model ----
-# models with random effect (1+model|item) and (0+model|item) failed to converge
-projection_gpt35_prior <- lmer(projection_rating ~ prior_type + (1+prior_type | item),
-                               projection_model_human_p %>% 
-                                 filter(model == "gpt-3.5-turbo"))
-summary(projection_gpt35_prior)
-
-projection_gpt35_base <- lmer(projection_p_human ~ projection_p_gpt35 + (1| item),
-                              projection_p_gpt35_analysis_data %>% 
-                                filter(verb != "polar"))
-summary(projection_gpt35_base)
-
-# models with random effect structures with model failed to converge
-projection_gpt35_condition <- lmer(projection_p_human ~ projection_p_gpt35 + prior_type + (1 | item),
-                                   projection_p_gpt35_analysis_data %>% 
-                                     filter(verb != "polar"))
-summary(projection_gpt35_condition)
-anova(projection_gpt35_base, projection_gpt35_condition)
-
-### gpt4 ----
-#### data ----
-projection_p_gpt4_analysis_data <- projection.model.human.data %>% 
-  filter(embedded_type == "p") %>% 
-  select(model, verb, projection_rating, item, prior_type) %>% 
-  filter(model == "gpt-4") %>% 
-  mutate(model = "projection_p_gpt4") %>%
-  bind_rows(projection_human_item_mean) %>% 
-  pivot_wider(names_from = model, values_from = projection_rating) %>% 
-  mutate(prior_type = relevel(as.factor(prior_type), ref="low_prior"))
-
-#### prior type ----
-projection_gpt4 <- lmer(projection_rating ~ prior_type + (1 + prior_type | item),
-                        projection_model_p %>% 
-                          filter(model == "gpt-4"))
-summary(projection_gpt4)
-levels(projection_model_p)
+prior_schema <- ggplot(prior_schema.df,
+                       aes(x=prior,
+                           y=prior_rating,
+                           fill=prior))+
+  geom_bar(stat = "identity",width = 0.5,color="black")+
+  geom_hline(yintercept=0.5,linetype='dashed', alpha=0.6,color="grey")+
+  scale_fill_manual(values=c("#56B4E9","#E69F00"),
+                    guide="none")+
+  scale_y_continuous(limits=c(0,1))+
+  labs(x="", y="") +
+  theme(axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 14))
+prior_schema
+ggsave(prior_schema, file="../../../prior_schema.pdf", width=4, height=4)
 
 
-#### human vs. model ----
-projection_gpt4_base <- lmer(projection_p_human ~ projection_p_gpt4 + (1|item),
-                             projection_p_gpt4_analysis_data %>% 
-                               filter(verb != "polar"))
-summary(projection_gpt4_base)
+predicate <- c("think", "know")
+predicate_rating <- c(0.37, 0.84)
+predicate_schema.df <- data.frame(predicate=predicate,rating=predicate_rating)
+predicate_schema.df$predicate <- factor(predicate_schema.df$predicate, levels = rev(levels(factor(predicate_schema.df$predicate))))
 
-projection_gpt4_condition <- lmer(projection_p_human ~ projection_p_gpt4 + prior_type + (1|item),
-                                  projection_p_gpt4_analysis_data %>% 
-                                    filter(verb != "polar"))
-summary(projection_gpt4_condition)
-anova(projection_gpt4_base, projection_gpt4_condition)
+predicate_schema <- ggplot(predicate_schema.df,
+                       aes(x=predicate,
+                           y=predicate_rating,
+                           fill=predicate))+
+  geom_bar(stat = "identity",width = 0.5,color="black")+
+  geom_hline(yintercept=0.5,linetype='dashed', alpha=0.6,color="grey")+
+  scale_fill_manual(values=c("#009E73", "#F0E442"),
+                    guide="none")+
+  scale_y_continuous(limits=c(0,1))+
+  labs(x="", y="") +
+  theme(axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 14))
+predicate_schema
+ggsave(predicate_schema, file="../../../predicate_schema.pdf", width=4, height=4)
 
-### gpt4o ----
-#### data ----
-projection_p_gpt4o_analysis_data <- projection.model.human.data %>% 
-  filter(embedded_type == "p") %>% 
-  select(model, verb, projection_rating, item, prior_type) %>% 
-  filter(model == "gpt-4o") %>% 
-  mutate(model = "projection_p_gpt4o") %>%
-  bind_rows(projection_human_item_mean) %>% 
-  pivot_wider(names_from = model, values_from = projection_rating) %>% 
-  mutate(prior_type = relevel(as.factor(prior_type), ref="low_prior"))
+qud <- c("JULIAN", "KNOW")
+qud_rating <- c(0.27, 0.67)
+qud_schema.df <- data.frame(qud=qud,rating=qud_rating)
 
-#### prior type ----
-projection_gpt4o <- lmer(projection_rating ~ prior_type + (1 +prior_type | item),
-                         projection_model_p %>% 
-                           filter(model == "gpt-4o"))
-summary(projection_gpt4o)
-
-#### human vs. model ----
-projection_gpt4o_base <- lmer(projection_p_human ~ projection_p_gpt4o + (1|item),
-                              projection_p_gpt4o_analysis_data %>% 
-                                filter(verb != "polar"))
-summary(projection_gpt4o_base)
-
-projection_gpt4o_condition <- lmer(projection_p_human ~ projection_p_gpt4o + prior_type + (1|item),
-                                   projection_p_gpt4o_analysis_data %>% 
-                                     filter(verb != "polar"))
-summary(projection_gpt4o_condition)
-anova(projection_gpt4o_base, projection_gpt4o_condition)
+qud_schema <- ggplot(qud_schema.df,
+                     aes(x=qud,
+                         y=qud_rating,
+                         alpha=qud))+
+  geom_bar(stat = "identity",width = 0.5,color="black")+
+  geom_hline(yintercept=0.5,linetype='dashed', alpha=0.6,color="grey")+
+  scale_alpha_manual(values=c(0.9, 0.4),
+                    guide="none")+
+  scale_y_continuous(limits=c(0,1))+
+  labs(x="", y="") +
+  theme(axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 14))
+qud_schema
+ggsave(qud_schema, file="../../../qud_schema.pdf", width=4, height=4)
